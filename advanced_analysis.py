@@ -464,7 +464,7 @@ def display_level_shift_results(results: Dict, kpi_data: pd.DataFrame,
         shift_details = []
         for i, (shift, explanation) in enumerate(zip(shifts, explanations)):
             shift_details.append({
-                '時間': shift['date'].strftime('%Y-%m-%d'),
+                '時間': pd.to_datetime(shift['date']).strftime('%Y-%m-%d'),
                 '變化方向': shift['change_direction'],
                 '變化幅度': f"{shift['change_pct']:.2f}%",
                 '變化前均值': f"{shift['before_mean']:.2f}",
@@ -605,8 +605,11 @@ def display_momentum_summary(results: Dict, kpi_name: str):
                 with col3:
                     st.metric("平均斜率", f"{period['avg_slope']:.4f}")
                 with col4:
-                    start_str = period['start_date'].strftime('%m-%d')
-                    end_str = period['end_date'].strftime('%m-%d')
+                    # 轉換 numpy.datetime64 為 pandas.Timestamp 以使用 strftime
+                    start_date = pd.to_datetime(period['start_date'])
+                    end_date = pd.to_datetime(period['end_date'])
+                    start_str = start_date.strftime('%m-%d')
+                    end_str = end_date.strftime('%m-%d')
                     st.metric("時間範圍", f"{start_str}~{end_str}")
                 
                 # 生成解釋

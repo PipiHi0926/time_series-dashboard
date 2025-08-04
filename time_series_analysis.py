@@ -435,7 +435,7 @@ def changepoint_detection(kpi_data: pd.DataFrame, kpi_name: str, fab_name: str):
             change_direction = "上升" if after_mean > before_mean else "下降"
             
             cp_details.append({
-                '變點位置': dates[cp].strftime('%Y-%m-%d'),
+                '變點位置': pd.to_datetime(dates[cp]).strftime('%Y-%m-%d'),
                 '變化方向': change_direction,
                 '變化幅度': f"{change_magnitude:.2f}",
                 '變化前平均': f"{before_mean:.2f}",
@@ -663,7 +663,7 @@ def anomaly_pattern_analysis(fab_data: pd.DataFrame, selected_kpis: List[str], f
             most_anomalous_kpi = z_scores.abs().idxmax()
             
             anomaly_details.append({
-                '時間': date.strftime('%Y-%m-%d'),
+                '時間': pd.to_datetime(date).strftime('%Y-%m-%d'),
                 '異常分數': f"{anomaly_score:.3f}",
                 '最異常KPI': most_anomalous_kpi,
                 'Z-Score': f"{z_scores[most_anomalous_kpi]:.3f}"
