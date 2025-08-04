@@ -113,8 +113,9 @@ cython_debug/
 # VS Code
 .vscode/
 
-# Streamlit
-.streamlit/
+# Streamlit (但保留配置文件)
+.streamlit/secrets.toml
+.streamlit/credentials.toml
 
 # OS generated files
 .DS_Store

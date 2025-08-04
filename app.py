@@ -16,7 +16,115 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
+def initialize_theme_settings():
+    """初始化主題設定"""
+    if 'theme_mode' not in st.session_state:
+        st.session_state.theme_mode = 'light'  # 預設為明亮模式
+
+def apply_custom_css():
+    """應用自定義CSS樣式"""
+    theme_mode = st.session_state.get('theme_mode', 'light')
+    
+    if theme_mode == 'light':
+        # 明亮模式CSS
+        light_css = """
+        <style>
+        .stApp {
+            background-color: #ffffff;
+        }
+        .stSidebar {
+            background-color: #f8f9fa;
+        }
+        .stSelectbox > div > div {
+            background-color: #ffffff;
+            color: #262730;
+        }
+        .stTextInput > div > div > input {
+            background-color: #ffffff;
+            color: #262730;
+        }
+        .stDataFrame {
+            background-color: #ffffff;
+        }
+        .metric-container {
+            background-color: #f8f9fa;
+            padding: 1rem;
+            border-radius: 0.5rem;
+            border: 1px solid #e9ecef;
+        }
+        .stAlert {
+            background-color: #f8f9fa;
+            color: #262730;
+        }
+        /* 改善圖表背景 */
+        .js-plotly-plot {
+            background-color: #ffffff !important;
+        }
+        </style>
+        """
+        st.markdown(light_css, unsafe_allow_html=True)
+    else:
+        # 深色模式CSS
+        dark_css = """
+        <style>
+        .stApp {
+            background-color: #0e1117;
+        }
+        .stSidebar {
+            background-color: #262730;
+        }
+        .metric-container {
+            background-color: #262730;
+            padding: 1rem;
+            border-radius: 0.5rem;
+            border: 1px solid #4a4a4a;
+        }
+        </style>
+        """
+        st.markdown(dark_css, unsafe_allow_html=True)
+
+def add_theme_toggle():
+    """添加主題切換開關"""
+    st.sidebar.markdown("---")
+    st.sidebar.subheader("🎨 主題設定")
+    
+    current_theme = st.session_state.get('theme_mode', 'light')
+    theme_labels = {'light': '☀️ 明亮模式', 'dark': '🌙 深色模式'}
+    
+    # 主題切換按鈕
+    col1, col2 = st.sidebar.columns(2)
+    
+    with col1:
+        if st.button("☀️ 明亮", key="light_theme", 
+                    type="primary" if current_theme == 'light' else "secondary"):
+            st.session_state.theme_mode = 'light'
+            st.rerun()
+    
+    with col2:
+        if st.button("🌙 深色", key="dark_theme",
+                    type="primary" if current_theme == 'dark' else "secondary"):
+            st.session_state.theme_mode = 'dark'
+            st.rerun()
+    
+    st.sidebar.info(f"當前主題: {theme_labels[current_theme]}")
+    
+    # 主題說明
+    with st.sidebar.expander("💡 主題說明", expanded=False):
+        st.write("""
+        **明亮模式**: 適合白天使用，背景為白色，文字為深色
+        
+        **深色模式**: 適合夜間使用，背景為深色，文字為亮色
+        
+        您可以隨時切換主題，設定會在當前會話中保持。
+        """)
+
 def main():
+    # 初始化主題設定
+    initialize_theme_settings()
+    
+    # 應用自定義CSS
+    apply_custom_css()
+    
     st.title("🏭 FAB KPI 時序資料異常監控 Dashboard")
     
     # Initialize session state for data
@@ -126,6 +234,9 @@ def show_sidebar_data_status():
             st.session_state.available_kpis = sorted(fab_data['KPI'].unique())
             st.session_state.selected_kpi = st.session_state.available_kpis[0] if st.session_state.available_kpis else None
             st.rerun()
+    
+    # 添加主題切換功能
+    add_theme_toggle()
 
 def kpi_quick_analysis_page():
     """KPI 快速分析頁面 - 預設首頁"""

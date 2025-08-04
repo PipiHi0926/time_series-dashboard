@@ -1,0 +1,17 @@
+[theme]
+# 設定預設主題為明亮模式
+primaryColor = "#1f77b4"
+backgroundColor = "#ffffff"
+secondaryBackgroundColor = "#f0f2f6"
+textColor = "#262730"
+font = "sans serif"
+
+[server]
+# 伺服器設定
+headless = false
+enableCORS = false
+enableXsrfProtection = false
+
+[browser]
+# 瀏覽器設定
+gatherUsageStats = false
