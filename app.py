@@ -143,7 +143,7 @@ def main():
     st.sidebar.title("🔍 分析方法")
     analysis_method = st.sidebar.radio(
         "選擇分析方法:",
-        ["KPI 快速分析", "數據上傳與FAB選擇", "統計方法偵測", "移動平均偵測", "季節性分解偵測", "時序分析", "KPI批量監控", "Level Shift 檢測", "趨勢動量分析", "異常趨勢分析"]
+        ["KPI 快速分析", "數據上傳與FAB選擇", "敘述統計分析", "統計方法偵測", "移動平均偵測", "季節性分解偵測", "時序分析", "KPI批量監控", "Level Shift 檢測", "趨勢動量分析", "異常趨勢分析"]
     )
     
     # 在側邊欄顯示當前選擇的資料狀態
@@ -154,6 +154,9 @@ def main():
         kpi_quick_analysis_page()
     elif analysis_method == "數據上傳與FAB選擇":
         data_upload_fab_selection_page()
+    elif analysis_method == "敘述統計分析":
+        from descriptive_stats import descriptive_statistics_page
+        descriptive_statistics_page()
     elif analysis_method == "統計方法偵測":
         statistical_detection_page()
     elif analysis_method == "移動平均偵測":
@@ -941,7 +944,12 @@ def calculate_data_quality_score(fab_data: pd.DataFrame) -> float:
     return max(0, min(10, score))
 
 def generate_fab_sample_data():
-    """生成 FAB KPI 範例數據"""
+    """生成 FAB KPI 範例數據 (使用真實數據生成器)"""
+    from realistic_data_generator import generate_realistic_fab_sample_data
+    return generate_realistic_fab_sample_data()
+
+def generate_old_fab_sample_data():
+    """原始 FAB KPI 範例數據生成器 (備用)"""
     np.random.seed(42)
     
     # 基本設定

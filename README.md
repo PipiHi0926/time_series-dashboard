@@ -82,6 +82,15 @@
 - **趨勢強度評估**: 評估趨勢的強度和一致性
 - **智能解釋系統**: 根據 KPI 類型提供針對性解釋
 
+### 📊 敘述統計分析
+- **智能數據類型推斷**: 自動識別連續型、計數型、二元型、稀疏事件等數據類型
+- **全面統計檢驗**: Shapiro-Wilk、D'Agostino-Pearson、Jarque-Bera、KS檢驗等常態性檢驗
+- **數據特性分析**: 偏度、峰度、異常值、趨勢性、平穩性、週期性等特徵分析
+- **稀疏性分析**: 零值比例、連續零值序列、數據密度等稀疏特性評估
+- **KPI智能標籤系統**: 自動生成數據特性標籤 (NORMAL/NON_NORMAL, SPARSE, TREND_*, etc.)
+- **方法論推薦引擎**: 根據KPI特性自動推薦最適合的分析方法
+- **可視化分析**: 時序圖、分布直方圖、Q-Q圖、箱型圖等多維度視覺化
+
 ### 📊 批量監控功能
 
 #### KPI 批量監控
@@ -137,6 +146,7 @@ run.bat
 ### 第二步：選擇分析方法
 從左側選單選擇適合的分析方法：
 
+- **敘述統計分析**: 全面的 KPI 特性分析和方法論推薦
 - **統計方法偵測**: 適用於無明顯趨勢和季節性的數據
 - **移動平均偵測**: 適用於有趨勢但季節性不明顯的數據  
 - **季節性分解偵測**: 適用於具有明顯季節性模式的數據
@@ -170,15 +180,27 @@ run.bat
 - **REPORT_TIME**: 報告時間 (日期時間格式)
 
 ### 支援的 KPI 類型
-系統針對以下 FAB KPI 提供最佳化範例：
-- **Yield**: 良率 (%)
-- **Throughput**: 產能 (units/day)
-- **Defect_Rate**: 缺陷率 (%)
-- **Equipment_Utilization**: 設備利用率 (%)
-- **Cycle_Time**: 週期時間 (hours)
-- **WIP_Level**: 在製品水準 (units)
-- **Cost_Per_Unit**: 單位成本 (USD)
-- **Quality_Score**: 品質分數
+系統支援多種真實的製造業 KPI 類型，包含不同的數據分布特性：
+
+#### 連續型 KPI
+- **Yield**: 良率 (%) - 百分比型，通常接近常態分布
+- **Throughput**: 產能 (units/day) - 計數型，右偏分布
+- **Equipment_Utilization**: 設備利用率 (%) - 百分比型，週期性模式
+- **Cycle_Time**: 週期時間 (hours) - 持續時間型，右偏Gamma分布
+- **Cost_Per_Unit**: 單位成本 (USD) - 貨幣型，通膨趨勢
+
+#### 計數型 KPI (泊松分布)
+- **Defect_Count**: 缺陷計數 - 稀有事件，泊松分布
+- **Critical_Alerts**: 關鍵警報數 - 低頻事件，高變異性
+- **Maintenance_Events**: 維護事件數 - 週期性泊松過程
+
+#### 二元型 KPI
+- **Line_Down_Flag**: 產線停機標誌 (0/1) - 二元稀有事件
+- **Quality_Pass_Flag**: 品質通過標誌 (0/1) - 高通過率二元型
+
+#### 稀疏事件型 KPI
+- **Equipment_Failure**: 設備故障 - 極稀疏事件 (1% 發生率)
+- **Process_Excursion**: 製程偏移 - 超稀疏事件 (0.5% 發生率)
 
 ### 數據建議
 - **時序資料**: 建議每日一點，數據點越多分析效果越好
@@ -213,14 +235,18 @@ run.bat
 ## 檔案結構
 ```
 kpi_oob_dashboard/
-├── app.py                    # 主應用程式和核心功能
-├── batch_monitoring.py      # KPI 批量監控模組
-├── time_series_analysis.py  # 時序分析功能模組
-├── advanced_analysis.py     # Level Shift 和趨勢動量分析模組
-├── requirements.txt         # 依賴套件清單
-├── run.py                   # Python 啟動腳本
-├── run.bat                  # Windows 批次檔啟動腳本
-└── README.md               # 完整說明文檔
+├── app.py                      # 主應用程式和核心功能
+├── batch_monitoring.py        # KPI 批量監控模組
+├── time_series_analysis.py    # 時序分析功能模組
+├── advanced_analysis.py       # Level Shift 和趨勢動量分析模組
+├── descriptive_stats.py       # 敘述統計分析和 KPI 特性分析模組
+├── realistic_data_generator.py # 真實 FAB 數據生成器
+├── .streamlit/
+│   └── config.toml            # Streamlit 主題配置
+├── requirements.txt           # 依賴套件清單
+├── run.py                     # Python 啟動腳本
+├── run.bat                    # Windows 批次檔啟動腳本
+└── README.md                 # 完整說明文檔
 ```
 
 ## 進階功能
