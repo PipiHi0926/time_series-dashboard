@@ -5,6 +5,19 @@ import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 from typing import Dict, List, Tuple
 
+def to_plotly_list(data):
+    """將任何數據格式轉換為 Plotly 5.6.0 相容的 Python list"""
+    if data is None:
+        return []
+    if hasattr(data, 'values'):
+        return data.values.tolist()
+    elif hasattr(data, 'tolist'):
+        return data.tolist() 
+    elif hasattr(data, '__iter__') and not isinstance(data, str):
+        return list(data)
+    else:
+        return [data]
+
 def batch_kpi_monitoring_page():
     """KPI 批量監控頁面"""
     st.header("📊 KPI 批量監控")
@@ -197,8 +210,7 @@ def display_monitoring_overview(results: Dict, fab_name: str):
     anomaly_rates = [results[kpi]['anomaly_rate'] for kpi in kpi_names]
     
     fig = go.Figure(data=go.Bar(
-        x=kpi_names,
-        y=anomaly_rates,
+        x=to_plotly_list(kpi_names), y=to_plotly_list(anomaly_rates),
         marker_color=['red' if rate > 5 else 'orange' if rate > 2 else 'green' 
                      for rate in anomaly_rates],
         text=[f"{rate:.1f}%" for rate in anomaly_rates],
@@ -245,8 +257,7 @@ def display_detailed_results(results: Dict, fab_data: pd.DataFrame):
         # 添加原始數據
         fig.add_trace(
             go.Scatter(
-                x=result['dates'],
-                y=result['values'],
+                x=to_plotly_list(result['dates']), y=to_plotly_list(result['values']),
                 mode='lines+markers',
                 name=f'{kpi}',
                 line=dict(width=1),
@@ -260,8 +271,7 @@ def display_detailed_results(results: Dict, fab_data: pd.DataFrame):
         if len(result['outliers']) > 0:
             fig.add_trace(
                 go.Scatter(
-                    x=result['dates'][result['outliers']],
-                    y=result['values'][result['outliers']],
+                    x=to_plotly_list(result['dates'][result['outliers']]), y=to_plotly_list(result['values'][result['outliers']]),
                     mode='markers',
                     name=f'{kpi} 異常',
                     marker=dict(color='red', size=6, symbol='x'),
@@ -315,8 +325,8 @@ def display_anomaly_ranking(results: Dict):
     risk_counts = ranking_df['風險等級'].value_counts()
     
     fig = go.Figure(data=[go.Pie(
-        labels=risk_counts.index,
-        values=risk_counts.values,
+        labels=to_plotly_list(risk_counts.index),
+        values=to_plotly_list(risk_counts.values),
         marker_colors=['#f44336', '#ff9800', '#4caf50'],
         textinfo='label+percent'
     )])

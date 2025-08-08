@@ -33,22 +33,28 @@ def apply_basic_css():
     """
     st.markdown(basic_css, unsafe_allow_html=True)
 
+def to_plotly_list(data):
+    """將任何數據格式轉換為 Plotly 5.6.0 相容的 Python list"""
+    if data is None:
+        return []
+    
+    # 處理 pandas Series
+    if hasattr(data, 'values'):
+        return data.values.tolist()
+    # 處理 numpy array
+    elif hasattr(data, 'tolist'):
+        return data.tolist() 
+    # 處理其他可迭代對象
+    elif hasattr(data, '__iter__') and not isinstance(data, str):
+        return list(data)
+    # 單一值
+    else:
+        return [data]
+
 def prepare_plotly_data(x_data, y_data):
     """準備 Plotly 圖表數據，確保格式正確 - 轉換為 Python list"""
-    # 轉換為 Python 原生 list，這是 Plotly 5.6.0 唯一能正確處理的格式
-    if hasattr(x_data, 'values'):
-        x_clean = x_data.values.tolist()  # pandas Series -> numpy array -> list
-    elif hasattr(x_data, 'tolist'):
-        x_clean = x_data.tolist()  # numpy array -> list
-    else:
-        x_clean = list(x_data)  # 其他類型 -> list
-    
-    if hasattr(y_data, 'values'):
-        y_clean = y_data.values.tolist()  # pandas Series -> numpy array -> list
-    elif hasattr(y_data, 'tolist'):
-        y_clean = y_data.tolist()  # numpy array -> list
-    else:
-        y_clean = list(y_data)  # 其他類型 -> list
+    x_clean = to_plotly_list(x_data)
+    y_clean = to_plotly_list(y_data)
     
     # 確保數據長度一致
     min_len = min(len(x_clean), len(y_clean))
@@ -164,9 +170,9 @@ def show_sidebar_data_status():
             current_fab = st.sidebar.selectbox(
                 "🏭 快速切換 FAB:",
                 options=available_fabs,
-                index=available_fabs.index(st.session_state.selected_fab) if st.session_state.selected_fab in available_fabs else 0,
-                key="sidebar_fab_selector"
-            )
+                index=to_plotly_list(available_fabs.index(st.session_state.selected_fab)) if st.session_state.selected_fab in available_fabs else 0,
+                key=to_plotly_list("sidebar_fab_selector"
+            ))
             
             if current_fab != st.session_state.selected_fab:
                 st.session_state.selected_fab = current_fab
@@ -180,15 +186,15 @@ def show_sidebar_data_status():
                 current_kpi = st.sidebar.selectbox(
                     "📈 快速切換 KPI:",
                     options=st.session_state.available_kpis,
-                    index=st.session_state.available_kpis.index(st.session_state.selected_kpi) if st.session_state.selected_kpi in st.session_state.available_kpis else 0,
-                    key="sidebar_kpi_selector"
-                )
+                    index=to_plotly_list(st.session_state.available_kpis.index(st.session_state.selected_kpi)) if st.session_state.selected_kpi in st.session_state.available_kpis else 0,
+                    key=to_plotly_list("sidebar_kpi_selector"
+                ))
                 
                 if current_kpi != st.session_state.selected_kpi:
                     st.session_state.selected_kpi = current_kpi
     else:
         st.sidebar.warning("⚠️ 尚未載入資料")
-        if st.sidebar.button("🎯 載入範例資料", key="sidebar_load_sample"):
+        if st.sidebar.button("🎯 載入範例資料", key=to_plotly_list("sidebar_load_sample")):
             sample_data = generate_fab_sample_data()
             sample_data = ensure_data_format(sample_data)
             st.session_state.raw_data = sample_data
@@ -217,7 +223,7 @@ def kpi_quick_analysis_page():
             st.subheader("🎯 使用範例資料")
             st.write("載入包含 4 個 FAB、12 種 KPI 的範例資料，包含真實的異常模式和特殊事件。")
             
-            if st.button("🚀 載入範例資料開始分析", key="quick_load_sample"):
+            if st.button("🚀 載入範例資料開始分析", key=to_plotly_list("quick_load_sample")):
                 with st.spinner("正在載入範例資料..."):
                     sample_data = generate_fab_sample_data()
                     sample_data = ensure_data_format(sample_data)
@@ -239,8 +245,8 @@ def kpi_quick_analysis_page():
             uploaded_file = st.file_uploader(
                 "選擇檔案",
                 type=['csv', 'xlsx', 'xls'],
-                key="quick_upload"
-            )
+                key=to_plotly_list("quick_upload"
+            ))
             
             if uploaded_file is not None:
                 try:
@@ -291,15 +297,15 @@ def kpi_quick_analysis_page():
         col1, col2, col3 = st.columns(3)
         
         with col1:
-            if st.button("📊 統計方法偵測", key="quick_statistical"):
+            if st.button("📊 統計方法偵測", key=to_plotly_list("quick_statistical")):
                 st.info("💡 請從左側選單選擇「統計方法偵測」進行分析")
         
         with col2:
-            if st.button("📈 移動平均偵測", key="quick_ma"):
+            if st.button("📈 移動平均偵測", key=to_plotly_list("quick_ma")):
                 st.info("💡 請從左側選單選擇「移動平均偵測」進行分析")
         
         with col3:
-            if st.button("🔄 季節性分解", key="quick_seasonal"):
+            if st.button("🔄 季節性分解", key=to_plotly_list("quick_seasonal")):
                 st.info("💡 請從左側選單選擇「季節性分解偵測」進行分析")
         
         # 執行基本的異常偵測預覽
@@ -320,8 +326,7 @@ def kpi_quick_analysis_page():
         
         # 原始數據
         fig.add_trace(go.Scatter(
-            x=x_data,
-            y=y_data,
+            x=to_plotly_list(x_data), y=to_plotly_list(y_data),
             mode='lines+markers',
             name='原始數據',
             line=dict(color='blue', width=2),
@@ -336,21 +341,20 @@ def kpi_quick_analysis_page():
             )
             
             fig.add_trace(go.Scatter(
-                x=outlier_x,
-                y=outlier_y,
+                x=to_plotly_list(outlier_x), y=to_plotly_list(outlier_y),
                 mode='markers',
                 name='可能異常點',
                 marker=dict(color='red', size=8, symbol='x')
             ))
         
         # 添加均值線
-        fig.add_hline(y=mean_val, line_dash="dash", line_color="green", 
+        fig.add_hline(y=to_plotly_list(mean_val), line_dash="dash", line_color="green", 
                      annotation_text=f"平均值: {mean_val:.2f}")
         
         # 添加 2σ 閾值線
-        fig.add_hline(y=mean_val + 2*std_val, line_dash="dash", line_color="orange", 
+        fig.add_hline(y=to_plotly_list(mean_val + 2*std_val), line_dash="dash", line_color="orange", 
                      annotation_text="上閾值 (2σ)")
-        fig.add_hline(y=mean_val - 2*std_val, line_dash="dash", line_color="orange", 
+        fig.add_hline(y=to_plotly_list(mean_val - 2*std_val), line_dash="dash", line_color="orange", 
                      annotation_text="下閾值 (2σ)")
         
         fig.update_layout(
@@ -585,9 +589,9 @@ FAB14B,Yield,2024-01-01,89.5"""
                 if preview_kpis:
                     # Create pivot table for visualization
                     pivot_data = fab_data[fab_data['KPI'].isin(preview_kpis)].pivot_table(
-                        index='REPORT_TIME', 
+                        index=to_plotly_list('REPORT_TIME'), 
                         columns='KPI', 
-                        values='VALUE', 
+                        values=to_plotly_list('VALUE'), 
                         aggfunc='mean'
                     ).reset_index()
                     
@@ -596,8 +600,7 @@ FAB14B,Yield,2024-01-01,89.5"""
                     for kpi in preview_kpis:
                         if kpi in pivot_data.columns:
                             fig.add_trace(go.Scatter(
-                                x=pivot_data['REPORT_TIME'],
-                                y=pivot_data[kpi],
+                                x=to_plotly_list(pivot_data['REPORT_TIME']), y=to_plotly_list(pivot_data[kpi]),
                                 mode='lines+markers',
                                 name=kpi,
                                 line=dict(width=2),
@@ -613,10 +616,10 @@ FAB14B,Yield,2024-01-01,89.5"""
                         legend=dict(
                             orientation="h",
                             yanchor="bottom",
-                            y=1.02,
+                            y=to_plotly_list(1.02),
                             xanchor="right",
-                            x=1
-                        )
+                            x=to_plotly_list(1
+                        ))
                     )
                     
                     st.plotly_chart(fig)
@@ -779,7 +782,7 @@ def show_sample_data_preview(sample_data: pd.DataFrame):
     
     # 轉換為透視表格式
     pivot_preview = fab_preview_data[fab_preview_data['KPI'].isin(main_kpis)].pivot_table(
-        index='REPORT_TIME', columns='KPI', values='VALUE', aggfunc='mean'
+        index=to_plotly_list('REPORT_TIME'), columns='KPI', values=to_plotly_list('VALUE'), aggfunc='mean'
     ).reset_index()
     
     if not pivot_preview.empty:
@@ -790,8 +793,7 @@ def show_sample_data_preview(sample_data: pd.DataFrame):
         for i, kpi in enumerate(main_kpis):
             if kpi in pivot_preview.columns:
                 fig.add_trace(go.Scatter(
-                    x=pivot_preview['REPORT_TIME'],
-                    y=pivot_preview[kpi],
+                    x=to_plotly_list(pivot_preview['REPORT_TIME']), y=to_plotly_list(pivot_preview[kpi]),
                     mode='lines',
                     name=kpi,
                     line=dict(color=colors[i % len(colors)], width=1.5)
@@ -806,10 +808,10 @@ def show_sample_data_preview(sample_data: pd.DataFrame):
             legend=dict(
                 orientation="h",
                 yanchor="bottom",
-                y=1.02,
+                y=to_plotly_list(1.02),
                 xanchor="right",
-                x=1
-            )
+                x=to_plotly_list(1
+            ))
         )
         
         st.plotly_chart(fig)
@@ -1209,8 +1211,8 @@ def statistical_detection_page():
     selected_kpi = st.selectbox(
         "選擇要分析的 KPI:",
         options=available_kpis,
-        index=current_kpi_index
-    )
+        index=to_plotly_list(current_kpi_index
+    ))
     
     # 更新 session state
     if selected_kpi != st.session_state.selected_kpi:
@@ -1234,8 +1236,7 @@ def statistical_detection_page():
         
         # Add original data
         fig.add_trace(go.Scatter(
-            x=kpi_data['REPORT_TIME'],
-            y=kpi_data['VALUE'],
+            x=to_plotly_list(kpi_data['REPORT_TIME']), y=to_plotly_list(kpi_data['VALUE']),
             mode='lines+markers',
             name='原始數據',
             line=dict(color='blue', width=2),
@@ -1248,8 +1249,7 @@ def statistical_detection_page():
             outlier_values = kpi_data.iloc[outliers_info['outlier_indices']]['VALUE']
         
             fig.add_trace(go.Scatter(
-                x=outlier_dates,
-                y=outlier_values,
+                x=to_plotly_list(outlier_dates), y=to_plotly_list(outlier_values),
                 mode='markers',
                 name='異常點',
                 marker=dict(color='red', size=10, symbol='x')
@@ -1262,9 +1262,9 @@ def statistical_detection_page():
             upper_threshold = mean_val + threshold * std_val
             lower_threshold = mean_val - threshold * std_val
             
-            fig.add_hline(y=upper_threshold, line_dash="dash", line_color="orange", 
+            fig.add_hline(y=to_plotly_list(upper_threshold), line_dash="dash", line_color="orange", 
                          annotation_text=f"上閾值 ({threshold}σ)")
-            fig.add_hline(y=lower_threshold, line_dash="dash", line_color="orange", 
+            fig.add_hline(y=to_plotly_list(lower_threshold), line_dash="dash", line_color="orange", 
                          annotation_text=f"下閾值 (-{threshold}σ)")
         
         fig.update_layout(
@@ -1429,8 +1429,8 @@ def moving_average_detection_page():
     selected_kpi = st.selectbox(
         "選擇要分析的 KPI:",
         options=available_kpis,
-        index=current_kpi_index
-    )
+        index=to_plotly_list(current_kpi_index
+    ))
     
     # 更新 session state
     if selected_kpi != st.session_state.selected_kpi:
@@ -1456,8 +1456,7 @@ def moving_average_detection_page():
         
         # Add original data
         fig.add_trace(go.Scatter(
-            x=kpi_data['REPORT_TIME'],
-            y=kpi_data['VALUE'],
+            x=to_plotly_list(kpi_data['REPORT_TIME']), y=to_plotly_list(kpi_data['VALUE']),
             mode='lines+markers',
             name='原始數據',
             line=dict(color='blue', width=2),
@@ -1466,8 +1465,7 @@ def moving_average_detection_page():
         
         # Add moving average
         fig.add_trace(go.Scatter(
-            x=kpi_data['REPORT_TIME'],
-            y=outliers_info['moving_avg'],
+            x=to_plotly_list(kpi_data['REPORT_TIME']), y=to_plotly_list(outliers_info['moving_avg']),
             mode='lines',
             name=f'{ma_method} (窗口={window_size})',
             line=dict(color='green', width=2)
@@ -1476,16 +1474,14 @@ def moving_average_detection_page():
         # Add upper and lower bounds
         if 'upper_bound' in outliers_info:
             fig.add_trace(go.Scatter(
-                x=kpi_data['REPORT_TIME'],
-                y=outliers_info['upper_bound'],
+                x=to_plotly_list(kpi_data['REPORT_TIME']), y=to_plotly_list(outliers_info['upper_bound']),
                 mode='lines',
                 name='上界',
                 line=dict(color='orange', dash='dash')
             ))
             
             fig.add_trace(go.Scatter(
-                x=kpi_data['REPORT_TIME'],
-                y=outliers_info['lower_bound'],
+                x=to_plotly_list(kpi_data['REPORT_TIME']), y=to_plotly_list(outliers_info['lower_bound']),
                 mode='lines',
                 name='下界',
                 line=dict(color='orange', dash='dash')
@@ -1497,8 +1493,7 @@ def moving_average_detection_page():
             outlier_values = kpi_data.iloc[outliers_info['outlier_indices']]['VALUE']
             
             fig.add_trace(go.Scatter(
-                x=outlier_dates,
-                y=outlier_values,
+                x=to_plotly_list(outlier_dates), y=to_plotly_list(outlier_values),
                 mode='markers',
                 name='異常點',
                 marker=dict(color='red', size=10, symbol='x')
@@ -1681,7 +1676,7 @@ def seasonal_decomposition_page():
         seasonal_period = st.selectbox(
             "季節週期:",
             [7, 30, 90, 365],
-            index=0,
+            index=to_plotly_list(0),
             format_func=lambda x: f"{x} 天"
         )
     
@@ -1696,8 +1691,8 @@ def seasonal_decomposition_page():
     selected_kpi = st.selectbox(
         "選擇要分析的 KPI:",
         options=available_kpis,
-        index=current_kpi_index
-    )
+        index=to_plotly_list(current_kpi_index
+    ))
     
     # 更新 session state
     if selected_kpi != st.session_state.selected_kpi:
@@ -1736,28 +1731,28 @@ def seasonal_decomposition_page():
             
             # Original data
             fig.add_trace(
-                go.Scatter(x=kpi_data['REPORT_TIME'], y=kpi_data['VALUE'], 
+                go.Scatter(x=to_plotly_list(kpi_data['REPORT_TIME']), y=to_plotly_list(kpi_data['VALUE']), 
                           mode='lines', name='原始數據', line=dict(color='blue')),
                 row=1, col=1
             )
             
             # Trend
             fig.add_trace(
-                go.Scatter(x=kpi_data['REPORT_TIME'], y=decomp_result['trend'], 
+                go.Scatter(x=to_plotly_list(kpi_data['REPORT_TIME']), y=to_plotly_list(decomp_result['trend']), 
                           mode='lines', name='趨勢', line=dict(color='green')),
                 row=2, col=1
             )
             
             # Seasonal
             fig.add_trace(
-                go.Scatter(x=kpi_data['REPORT_TIME'], y=decomp_result['seasonal'], 
+                go.Scatter(x=to_plotly_list(kpi_data['REPORT_TIME']), y=to_plotly_list(decomp_result['seasonal']), 
                           mode='lines', name='季節性', line=dict(color='orange')),
                 row=3, col=1
             )
             
             # Residuals with outliers
             fig.add_trace(
-                go.Scatter(x=kpi_data['REPORT_TIME'], y=decomp_result['resid'], 
+                go.Scatter(x=to_plotly_list(kpi_data['REPORT_TIME']), y=to_plotly_list(decomp_result['resid']), 
                           mode='lines', name='殘差', line=dict(color='gray')),
                 row=4, col=1
             )
@@ -1768,7 +1763,7 @@ def seasonal_decomposition_page():
                 outlier_residuals = decomp_result['resid'][decomp_result['outlier_indices']]
                 
                 fig.add_trace(
-                    go.Scatter(x=outlier_dates, y=outlier_residuals,
+                    go.Scatter(x=to_plotly_list(outlier_dates), y=to_plotly_list(outlier_residuals),
                               mode='markers', name='異常點',
                               marker=dict(color='red', size=8, symbol='x')),
                     row=4, col=1
@@ -1778,9 +1773,9 @@ def seasonal_decomposition_page():
             residual_std = np.std(decomp_result['resid'])
             residual_mean = np.mean(decomp_result['resid'])
             
-            fig.add_hline(y=residual_mean + threshold * residual_std, 
+            fig.add_hline(y=to_plotly_list(residual_mean + threshold * residual_std), 
                          line_dash="dash", line_color="red", row=4, col=1)
-            fig.add_hline(y=residual_mean - threshold * residual_std, 
+            fig.add_hline(y=to_plotly_list(residual_mean - threshold * residual_std), 
                          line_dash="dash", line_color="red", row=4, col=1)
             
             fig.update_layout(height=800, showlegend=False)
@@ -1795,8 +1790,7 @@ def seasonal_decomposition_page():
             
             # Add original data
             fig2.add_trace(go.Scatter(
-                x=kpi_data['REPORT_TIME'],
-                y=kpi_data['VALUE'],
+                x=to_plotly_list(kpi_data['REPORT_TIME']), y=to_plotly_list(kpi_data['VALUE']),
                 mode='lines+markers',
                 name='原始數據',
                 line=dict(color='blue', width=2),
@@ -1806,8 +1800,7 @@ def seasonal_decomposition_page():
             # Add reconstructed data (trend + seasonal)
             reconstructed = decomp_result['trend'] + decomp_result['seasonal']
             fig2.add_trace(go.Scatter(
-                x=kpi_data['REPORT_TIME'],
-                y=reconstructed,
+                x=to_plotly_list(kpi_data['REPORT_TIME']), y=to_plotly_list(reconstructed),
                 mode='lines',
                 name='重建數據 (趨勢+季節性)',
                 line=dict(color='green', width=2, dash='dash')
@@ -1819,8 +1812,7 @@ def seasonal_decomposition_page():
                 outlier_values = kpi_data.iloc[decomp_result['outlier_indices']]['VALUE']
                 
                 fig2.add_trace(go.Scatter(
-                    x=outlier_dates,
-                    y=outlier_values,
+                    x=to_plotly_list(outlier_dates), y=to_plotly_list(outlier_values),
                     mode='markers',
                     name='異常點',
                     marker=dict(color='red', size=10, symbol='x')
@@ -1858,7 +1850,7 @@ def seasonal_decomposition_page():
                 outlier_df['季節性值'] = decomp_result['seasonal'][decomp_result['outlier_indices']]
                 outlier_df['殘差值'] = decomp_result['resid'][decomp_result['outlier_indices']]
                 outlier_df['重建值'] = decomp_result['trend'][decomp_result['outlier_indices']] + decomp_result['seasonal'][decomp_result['outlier_indices']]
-                outlier_df = outlier_df.sort_values('殘差值', key=abs, ascending=False)
+                outlier_df = outlier_df.sort_values('殘差值', key=to_plotly_list(abs), ascending=False)
                 
                 st.dataframe(outlier_df[['REPORT_TIME', 'VALUE', '趨勢值', '季節性值', '殘差值', '重建值']])
             else:

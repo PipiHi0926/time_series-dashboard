@@ -10,6 +10,19 @@ from scipy.stats import normaltest, jarque_bera, kstest, anderson
 import warnings
 warnings.filterwarnings('ignore')
 
+def to_plotly_list(data):
+    """將任何數據格式轉換為 Plotly 5.6.0 相容的 Python list"""
+    if data is None:
+        return []
+    if hasattr(data, 'values'):
+        return data.values.tolist()
+    elif hasattr(data, 'tolist'):
+        return data.tolist() 
+    elif hasattr(data, '__iter__') and not isinstance(data, str):
+        return list(data)
+    else:
+        return [data]
+
 def descriptive_statistics_page():
     """敘述統計分析頁面"""
     st.header("📊 敘述統計分析")
@@ -529,13 +542,13 @@ def display_kpi_classification_charts(profiles: Dict):
     
     # 數據類型餅圖
     fig.add_trace(
-        go.Pie(labels=list(type_counts.keys()), values=list(type_counts.values()), name="數據類型"),
+        go.Pie(labels=to_plotly_list(list(type_counts.keys())), values=to_plotly_list(list(type_counts.values())), name="數據類型"),
         row=1, col=1
     )
     
     # 常態性餅圖
     fig.add_trace(
-        go.Pie(labels=list(normality_counts.keys()), values=list(normality_counts.values()), name="常態性"),
+        go.Pie(labels=to_plotly_list(list(normality_counts.keys())), values=to_plotly_list(list(normality_counts.values())), name="常態性"),
         row=1, col=2
     )
     
@@ -548,7 +561,7 @@ def display_kpi_classification_charts(profiles: Dict):
     sparse_df = pd.DataFrame(sparse_data)
     
     fig.add_trace(
-        go.Bar(x=sparse_df['KPI'], y=sparse_df['Zero_Ratio'], name="零值比例"),
+        go.Bar(x=to_plotly_list(sparse_df['KPI']), y=to_plotly_list(sparse_df['Zero_Ratio']), name="零值比例"),
         row=1, col=3
     )
     
@@ -691,14 +704,14 @@ def display_kpi_visualization(profile: Dict, fab_data: pd.DataFrame, kpi_name: s
     
     # 時序圖
     fig.add_trace(
-        go.Scatter(x=kpi_data['REPORT_TIME'], y=kpi_data['VALUE'], 
+        go.Scatter(x=to_plotly_list(kpi_data['REPORT_TIME']), y=to_plotly_list(kpi_data['VALUE']), 
                   mode='lines+markers', name='原始數據', line=dict(width=1)),
         row=1, col=1
     )
     
     # 分布直方圖
     fig.add_trace(
-        go.Histogram(x=profile['data'], nbinsx=30, name='分布'),
+        go.Histogram(x=to_plotly_list(profile['data']), nbinsx=30, name='分布'),
         row=1, col=2
     )
     
@@ -707,7 +720,7 @@ def display_kpi_visualization(profile: Dict, fab_data: pd.DataFrame, kpi_name: s
     theoretical_quantiles = stats.norm.ppf(np.linspace(0.01, 0.99, len(data_sorted)))
     
     fig.add_trace(
-        go.Scatter(x=theoretical_quantiles, y=data_sorted, 
+        go.Scatter(x=to_plotly_list(theoretical_quantiles), y=to_plotly_list(data_sorted), 
                   mode='markers', name='Q-Q點'),
         row=2, col=1
     )
@@ -715,14 +728,14 @@ def display_kpi_visualization(profile: Dict, fab_data: pd.DataFrame, kpi_name: s
     # 添加 Q-Q 參考線
     min_val, max_val = min(theoretical_quantiles), max(theoretical_quantiles)
     fig.add_trace(
-        go.Scatter(x=[min_val, max_val], y=[min_val, max_val], 
+        go.Scatter(x=to_plotly_list([min_val, max_val]), y=to_plotly_list([min_val, max_val]), 
                   mode='lines', name='理論線', line=dict(dash='dash')),
         row=2, col=1
     )
     
     # 箱型圖
     fig.add_trace(
-        go.Box(y=profile['data'], name='箱型圖'),
+        go.Box(y=to_plotly_list(profile['data']), name='箱型圖'),
         row=2, col=2
     )
     

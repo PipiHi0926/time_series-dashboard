@@ -10,6 +10,24 @@ from sklearn.decomposition import PCA
 import warnings
 warnings.filterwarnings('ignore')
 
+def to_plotly_list(data):
+    """將任何數據格式轉換為 Plotly 5.6.0 相容的 Python list"""
+    if data is None:
+        return []
+    
+    # 處理 pandas Series
+    if hasattr(data, 'values'):
+        return data.values.tolist()
+    # 處理 numpy array
+    elif hasattr(data, 'tolist'):
+        return data.tolist() 
+    # 處理其他可迭代對象
+    elif hasattr(data, '__iter__') and not isinstance(data, str):
+        return list(data)
+    # 單一值
+    else:
+        return [data]
+
 def time_series_analysis_page():
     """時序分析頁面"""
     st.header("📈 時序分析")
@@ -108,8 +126,7 @@ def trend_analysis(kpi_data: pd.DataFrame, kpi_name: str, fab_name: str):
     
     # 原始數據
     fig.add_trace(go.Scatter(
-        x=dates,
-        y=values,
+        x=to_plotly_list(dates), y=to_plotly_list(values),
         mode='lines+markers',
         name='原始數據',
         line=dict(color='blue', width=2),
@@ -118,8 +135,7 @@ def trend_analysis(kpi_data: pd.DataFrame, kpi_name: str, fab_name: str):
     
     # 趨勢線
     fig.add_trace(go.Scatter(
-        x=dates,
-        y=trend_line,
+        x=to_plotly_list(dates), y=to_plotly_list(trend_line),
         mode='lines',
         name=f'線性趨勢 (斜率={slope:.4f})',
         line=dict(color='red', width=2, dash='dash')
@@ -133,8 +149,7 @@ def trend_analysis(kpi_data: pd.DataFrame, kpi_name: str, fab_name: str):
         if len(values) >= window:
             ma = pd.Series(values).rolling(window=window).mean()
             fig.add_trace(go.Scatter(
-                x=dates,
-                y=ma,
+                x=to_plotly_list(dates), y=to_plotly_list(ma),
                 mode='lines',
                 name=f'{window}日移動平均',
                 line=dict(color=color, width=1.5)
@@ -219,13 +234,13 @@ def periodicity_analysis(kpi_data: pd.DataFrame, kpi_name: str, fab_name: str):
     
     # 原始時序
     fig.add_trace(
-        go.Scatter(x=dates, y=values, mode='lines', name='原始數據'),
+        go.Scatter(x=to_plotly_list(dates), y=to_plotly_list(values), mode='lines', name='原始數據'),
         row=1, col=1
     )
     
     # 頻譜
     fig.add_trace(
-        go.Scatter(x=freqs[1:len(freqs)//2], y=power[1:len(power)//2], 
+        go.Scatter(x=to_plotly_list(freqs[1:len(freqs)//2]), y=to_plotly_list(power[1:len(power)//2]), 
                    mode='lines', name='功率譜'),
         row=1, col=2
     )
@@ -235,14 +250,14 @@ def periodicity_analysis(kpi_data: pd.DataFrame, kpi_name: str, fab_name: str):
     weekly_means = [weekly_stats.loc[day, 'mean'] if day in weekly_stats.index else 0 for day in day_order]
     
     fig.add_trace(
-        go.Bar(x=day_order, y=weekly_means, name='週間平均'),
+        go.Bar(x=to_plotly_list(day_order), y=to_plotly_list(weekly_means), name='週間平均'),
         row=2, col=1
     )
     
     # 自相關
     autocorr = [np.corrcoef(values[:-i], values[i:])[0,1] for i in range(1, min(50, len(values)//2))]
     fig.add_trace(
-        go.Scatter(x=list(range(1, len(autocorr)+1)), y=autocorr, 
+        go.Scatter(x=list(range(1, len(autocorr)+1)), y=to_plotly_list(autocorr), 
                    mode='lines+markers', name='自相關'),
         row=2, col=2
     )
@@ -294,7 +309,7 @@ def autocorrelation_analysis(kpi_data: pd.DataFrame, kpi_name: str, fab_name: st
     
     # 自相關函數
     fig.add_trace(
-        go.Scatter(x=list(lags), y=autocorr, 
+        go.Scatter(x=to_plotly_list(list(lags)), y=to_plotly_list(autocorr), 
                    mode='lines+markers', name='自相關'),
         row=1, col=1
     )
@@ -307,7 +322,7 @@ def autocorrelation_analysis(kpi_data: pd.DataFrame, kpi_name: str, fab_name: st
     # 顯著性條形圖
     colors = ['red' if abs(corr) > confidence_level else 'blue' for corr in autocorr]
     fig.add_trace(
-        go.Bar(x=list(lags), y=autocorr, marker_color=colors, name='顯著性'),
+        go.Bar(x=to_plotly_list(list(lags)), y=to_plotly_list(autocorr), marker_color=colors, name='顯著性'),
         row=2, col=1
     )
     
@@ -378,8 +393,7 @@ def changepoint_detection(kpi_data: pd.DataFrame, kpi_name: str, fab_name: str):
     
     # 原始數據
     fig.add_trace(go.Scatter(
-        x=dates,
-        y=values,
+        x=to_plotly_list(dates), y=to_plotly_list(values),
         mode='lines+markers',
         name='原始數據',
         line=dict(color='blue', width=2),
@@ -406,8 +420,7 @@ def changepoint_detection(kpi_data: pd.DataFrame, kpi_name: str, fab_name: str):
             segment_mean = np.mean(values[start:end])
             
             fig.add_trace(go.Scatter(
-                x=dates[start:end],
-                y=[segment_mean] * (end - start),
+                x=to_plotly_list(dates[start:end]), y=to_plotly_list([segment_mean] * (end - start)),
                 mode='lines',
                 name=f'段 {i+1} 平均',
                 line=dict(color=colors[i % len(colors)], width=3)
@@ -506,25 +519,25 @@ def time_series_decomposition(kpi_data: pd.DataFrame, kpi_name: str, fab_name: s
         
         # 原始數據
         fig.add_trace(
-            go.Scatter(x=dates, y=values, mode='lines', name='原始', line=dict(color='blue')),
+            go.Scatter(x=to_plotly_list(dates), y=to_plotly_list(values), mode='lines', name='原始', line=dict(color='blue')),
             row=1, col=1
         )
         
         # 趨勢
         fig.add_trace(
-            go.Scatter(x=dates, y=decomposition.trend, mode='lines', name='趨勢', line=dict(color='green')),
+            go.Scatter(x=to_plotly_list(dates), y=to_plotly_list(decomposition.trend), mode='lines', name='趨勢', line=dict(color='green')),
             row=2, col=1
         )
         
         # 季節性
         fig.add_trace(
-            go.Scatter(x=dates, y=decomposition.seasonal, mode='lines', name='季節性', line=dict(color='orange')),
+            go.Scatter(x=to_plotly_list(dates), y=to_plotly_list(decomposition.seasonal), mode='lines', name='季節性', line=dict(color='orange')),
             row=3, col=1
         )
         
         # 殘差
         fig.add_trace(
-            go.Scatter(x=dates, y=decomposition.resid, mode='lines', name='殘差', line=dict(color='red')),
+            go.Scatter(x=to_plotly_list(dates), y=to_plotly_list(decomposition.resid), mode='lines', name='殘差', line=dict(color='red')),
             row=4, col=1
         )
         
@@ -615,7 +628,7 @@ def anomaly_pattern_analysis(fab_data: pd.DataFrame, selected_kpis: List[str], f
     # PCA 散點圖
     colors = ['red' if i in anomaly_indices else 'blue' for i in range(len(pca_result))]
     fig.add_trace(
-        go.Scatter(x=pca_result[:, 0], y=pca_result[:, 1], 
+        go.Scatter(x=to_plotly_list(pca_result[:, 0]), y=to_plotly_list(pca_result[:, 1]), 
                    mode='markers', marker=dict(color=colors),
                    name='數據點'),
         row=1, col=1
@@ -623,14 +636,14 @@ def anomaly_pattern_analysis(fab_data: pd.DataFrame, selected_kpis: List[str], f
     
     # PCA 貢獻率
     fig.add_trace(
-        go.Bar(x=[f'PC{i+1}' for i in range(len(pca.explained_variance_ratio_))],
-               y=pca.explained_variance_ratio_, name='貢獻率'),
+        go.Bar(x=to_plotly_list([f'PC{i+1}' for i in range(len(pca.explained_variance_ratio_))]),
+               y=to_plotly_list(pca.explained_variance_ratio_), name='貢獻率'),
         row=1, col=2
     )
     
     # 異常分數時序
     fig.add_trace(
-        go.Scatter(x=pivot_data.index, y=mahalanobis_distances,
+        go.Scatter(x=to_plotly_list(pivot_data.index), y=to_plotly_list(mahalanobis_distances),
                    mode='lines+markers', name='異常分數'),
         row=2, col=1
     )
@@ -639,7 +652,7 @@ def anomaly_pattern_analysis(fab_data: pd.DataFrame, selected_kpis: List[str], f
     # 相關性熱圖
     corr_matrix = pivot_data.corr()
     fig.add_trace(
-        go.Heatmap(z=corr_matrix.values, x=corr_matrix.columns, y=corr_matrix.index,
+        go.Heatmap(z=to_plotly_list(corr_matrix.values), x=to_plotly_list(corr_matrix.columns), y=to_plotly_list(corr_matrix.index),
                    colorscale='RdYlBu', zmid=0),
         row=2, col=2
     )

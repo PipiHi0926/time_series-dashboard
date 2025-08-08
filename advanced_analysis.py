@@ -9,6 +9,19 @@ from scipy.signal import find_peaks
 import warnings
 warnings.filterwarnings('ignore')
 
+def to_plotly_list(data):
+    """將任何數據格式轉換為 Plotly 5.6.0 相容的 Python list"""
+    if data is None:
+        return []
+    if hasattr(data, 'values'):
+        return data.values.tolist()
+    elif hasattr(data, 'tolist'):
+        return data.tolist() 
+    elif hasattr(data, '__iter__') and not isinstance(data, str):
+        return list(data)
+    else:
+        return [data]
+
 def level_shift_detection_page():
     """Level Shift 檢測頁面"""
     st.header("🔄 Level Shift 檢測分析")
@@ -406,8 +419,7 @@ def display_level_shift_results(results: Dict, kpi_data: pd.DataFrame,
     
     # 原始數據
     fig.add_trace(go.Scatter(
-        x=dates,
-        y=values,
+        x=to_plotly_list(dates), y=to_plotly_list(values),
         mode='lines+markers',
         name='原始數據',
         line=dict(color='blue', width=2),
@@ -421,8 +433,7 @@ def display_level_shift_results(results: Dict, kpi_data: pd.DataFrame,
         shift_colors = ['red' if s['change_direction'] == '下降' else 'green' for s in shifts]
         
         fig.add_trace(go.Scatter(
-            x=shift_dates,
-            y=shift_values,
+            x=to_plotly_list(shift_dates), y=to_plotly_list(shift_values),
             mode='markers',
             name='Level Shift',
             marker=dict(
@@ -436,8 +447,7 @@ def display_level_shift_results(results: Dict, kpi_data: pd.DataFrame,
         # 添加標註
         for i, shift in enumerate(shifts):
             fig.add_annotation(
-                x=shift['date'],
-                y=values[shift['index']],
+                x=to_plotly_list(shift['date']), y=to_plotly_list(values[shift['index']]),
                 text=f"{shift['change_direction']}<br>{shift['change_pct']:.1f}%",
                 showarrow=True,
                 arrowhead=2,
@@ -494,7 +504,7 @@ def display_momentum_results(results: Dict, kpi_data: pd.DataFrame,
     
     # 原始數據
     fig.add_trace(
-        go.Scatter(x=dates, y=values, mode='lines+markers', name='原始數據'),
+        go.Scatter(x=to_plotly_list(dates), y=to_plotly_list(values), mode='lines+markers', name='原始數據'),
         row=1, col=1
     )
     
@@ -506,17 +516,17 @@ def display_momentum_results(results: Dict, kpi_data: pd.DataFrame,
         start_idx = momentum['start_index']
         
         fig.add_trace(
-            go.Scatter(x=dates[start_idx:], y=momentum['short_trends'], 
+            go.Scatter(x=to_plotly_list(dates[start_idx:]), y=to_plotly_list(momentum['short_trends']), 
                       name=f'短期趨勢 ({results["short_window"]}天)', line=dict(color='blue')),
             row=current_row, col=1
         )
         fig.add_trace(
-            go.Scatter(x=dates[start_idx:], y=momentum['long_trends'], 
+            go.Scatter(x=to_plotly_list(dates[start_idx:]), y=to_plotly_list(momentum['long_trends']), 
                       name=f'長期趨勢 ({results["long_window"]}天)', line=dict(color='red')),
             row=current_row, col=1
         )
         fig.add_trace(
-            go.Scatter(x=dates[start_idx:], y=momentum['momentum_signals'], 
+            go.Scatter(x=to_plotly_list(dates[start_idx:]), y=to_plotly_list(momentum['momentum_signals']), 
                       name='動量信號', line=dict(color='green')),
             row=current_row, col=1
         )
@@ -529,7 +539,7 @@ def display_momentum_results(results: Dict, kpi_data: pd.DataFrame,
         trend_dates = dates[continuous['window']:]
         
         fig.add_trace(
-            go.Scatter(x=trend_dates, y=trends, mode='lines', name='趨勢強度'),
+            go.Scatter(x=to_plotly_list(trend_dates), y=to_plotly_list(trends), mode='lines', name='趨勢強度'),
             row=current_row, col=1
         )
         
@@ -550,8 +560,8 @@ def display_momentum_results(results: Dict, kpi_data: pd.DataFrame,
         start_idx = accel['start_index']
         
         fig.add_trace(
-            go.Scatter(x=dates[start_idx:start_idx+len(accel['accelerations'])], 
-                      y=accel['accelerations'], mode='lines', name='趨勢加速度'),
+            go.Scatter(x=to_plotly_list(dates[start_idx:start_idx+len(accel['accelerations'])]), 
+                      y=to_plotly_list(accel['accelerations']), mode='lines', name='趨勢加速度'),
             row=current_row, col=1
         )
         current_row += 1
@@ -563,12 +573,12 @@ def display_momentum_results(results: Dict, kpi_data: pd.DataFrame,
         combined_strengths = [s['combined_strength'] for s in strength['strengths']]
         
         fig.add_trace(
-            go.Scatter(x=dates[start_idx:], y=combined_strengths, 
+            go.Scatter(x=to_plotly_list(dates[start_idx:]), y=to_plotly_list(combined_strengths), 
                       mode='lines', name='綜合趨勢強度'),
             row=current_row, col=1
         )
         fig.add_trace(
-            go.Scatter(x=dates[start_idx:], y=strength['consistencies'], 
+            go.Scatter(x=to_plotly_list(dates[start_idx:]), y=to_plotly_list(strength['consistencies']), 
                       mode='lines', name='趨勢一致性'),
             row=current_row, col=1
         )
