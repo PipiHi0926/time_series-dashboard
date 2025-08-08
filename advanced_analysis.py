@@ -455,7 +455,7 @@ def display_level_shift_results(results: Dict, kpi_data: pd.DataFrame,
         hovermode='x unified'
     )
     
-    st.plotly_chart(fig, use_container_width=True)
+    st.plotly_chart(fig)
     
     # 詳細結果表格
     if shifts:
@@ -474,7 +474,7 @@ def display_level_shift_results(results: Dict, kpi_data: pd.DataFrame,
             })
         
         df = pd.DataFrame(shift_details)
-        st.dataframe(df, use_container_width=True)
+        st.dataframe(df)
 
 def display_momentum_results(results: Dict, kpi_data: pd.DataFrame, 
                            kpi_name: str, fab_name: str):
@@ -580,7 +580,7 @@ def display_momentum_results(results: Dict, kpi_data: pd.DataFrame,
         showlegend=True
     )
     
-    st.plotly_chart(fig, use_container_width=True)
+    st.plotly_chart(fig)
     
     # 分析摘要
     display_momentum_summary(results, kpi_name)

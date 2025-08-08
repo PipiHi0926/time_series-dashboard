@@ -305,7 +305,7 @@ def kpi_quick_analysis_page():
             height=500
         )
         
-        st.plotly_chart(fig, use_container_width=True)
+        st.plotly_chart(fig)
         
         # 顯示異常統計
         col1, col2, col3, col4 = st.columns(4)
@@ -563,7 +563,7 @@ FAB14B,Yield,2024-01-01,89.5"""
                         )
                     )
                     
-                    st.plotly_chart(fig, use_container_width=True)
+                    st.plotly_chart(fig)
                 
                 st.info("💡 FAB 數據已準備完成！請從左側選單選擇分析方法進行監控。")
                 
@@ -664,7 +664,7 @@ def show_sample_data_preview(sample_data: pd.DataFrame):
         })
     
     fab_stats_df = pd.DataFrame(fab_stats)
-    st.dataframe(fab_stats_df, use_container_width=True)
+    st.dataframe(fab_stats_df)
     
     # KPI 數值範圍統計
     st.subheader("📈 各 KPI 數值範圍")
@@ -683,7 +683,7 @@ def show_sample_data_preview(sample_data: pd.DataFrame):
         })
     
     kpi_stats_df = pd.DataFrame(kpi_stats)
-    st.dataframe(kpi_stats_df, use_container_width=True)
+    st.dataframe(kpi_stats_df)
     
     # 特殊事件時間線
     st.subheader("⚡ 特殊事件時間線")
@@ -709,7 +709,7 @@ def show_sample_data_preview(sample_data: pd.DataFrame):
             return 'background-color: #fff3cd'
     
     styled_events = events_df.style.applymap(color_event_type, subset=['類型'])
-    st.dataframe(styled_events, use_container_width=True)
+    st.dataframe(styled_events)
     
     # 簡單的 KPI 趨勢圖
     st.subheader("📊 主要 KPI 趨勢預覽")
@@ -755,7 +755,7 @@ def show_sample_data_preview(sample_data: pd.DataFrame):
             )
         )
         
-        st.plotly_chart(fig, use_container_width=True)
+        st.plotly_chart(fig)
     
     st.info("💡 以上為範例數據的統計預覽。點擊「載入範例數據」開始進行完整分析！")
 
@@ -1218,7 +1218,7 @@ def statistical_detection_page():
             height=600
         )
         
-        st.plotly_chart(fig, use_container_width=True)
+        st.plotly_chart(fig)
         
         # Show statistics
         col1, col2, col3 = st.columns(3)
@@ -1241,15 +1241,7 @@ def statistical_detection_page():
             outlier_df['異常程度'] = outliers_info['scores'][outliers_info['outlier_indices']]
             outlier_df = outlier_df.sort_values('異常程度', ascending=False)
             
-            st.dataframe(
-                outlier_df[['REPORT_TIME', 'VALUE', '異常程度']],
-                use_container_width=True,
-                column_config={
-                    "REPORT_TIME": st.column_config.DatetimeColumn("報告時間"),
-                    "VALUE": st.column_config.NumberColumn("KPI 值", format="%.2f"),
-                    "異常程度": st.column_config.NumberColumn("異常分數", format="%.3f")
-                }
-            )
+            st.dataframe(outlier_df[['REPORT_TIME', 'VALUE', '異常程度']])
         else:
             st.success("✅ 未發現異常點")
 
@@ -1463,7 +1455,7 @@ def moving_average_detection_page():
             height=600
         )
         
-        st.plotly_chart(fig, use_container_width=True)
+        st.plotly_chart(fig)
         
         # Show statistics
         col1, col2, col3 = st.columns(3)
@@ -1487,16 +1479,7 @@ def moving_average_detection_page():
             outlier_df['偏離程度'] = outliers_info['deviations'][outliers_info['outlier_indices']]
             outlier_df = outlier_df.sort_values('偏離程度', ascending=False)
             
-            st.dataframe(
-                outlier_df[['REPORT_TIME', 'VALUE', '移動平均值', '偏離程度']],
-                use_container_width=True,
-                column_config={
-                    "REPORT_TIME": st.column_config.DatetimeColumn("報告時間"),
-                    "VALUE": st.column_config.NumberColumn("KPI 值", format="%.2f"),
-                    "移動平均值": st.column_config.NumberColumn("移動平均值", format="%.2f"),
-                    "偏離程度": st.column_config.NumberColumn("偏離程度", format="%.2f")
-                }
-            )
+            st.dataframe(outlier_df[['REPORT_TIME', 'VALUE', '移動平均值', '偏離程度']])
         else:
             st.success("✅ 未發現異常點")
 
@@ -1746,7 +1729,7 @@ def seasonal_decomposition_page():
             fig.update_layout(height=800, showlegend=False)
             fig.update_xaxes(title_text="時間", row=4, col=1)
             
-            st.plotly_chart(fig, use_container_width=True)
+            st.plotly_chart(fig)
             
             # Show reconstructed vs original
             st.subheader("📈 重建數據與異常點")
@@ -1794,7 +1777,7 @@ def seasonal_decomposition_page():
                 height=500
             )
             
-            st.plotly_chart(fig2, use_container_width=True)
+            st.plotly_chart(fig2)
             
             # Show statistics
             col1, col2, col3 = st.columns(3)
@@ -1820,18 +1803,7 @@ def seasonal_decomposition_page():
                 outlier_df['重建值'] = decomp_result['trend'][decomp_result['outlier_indices']] + decomp_result['seasonal'][decomp_result['outlier_indices']]
                 outlier_df = outlier_df.sort_values('殘差值', key=abs, ascending=False)
                 
-                st.dataframe(
-                    outlier_df[['REPORT_TIME', 'VALUE', '趨勢值', '季節性值', '殘差值', '重建值']],
-                    use_container_width=True,
-                    column_config={
-                        "REPORT_TIME": st.column_config.DatetimeColumn("報告時間"),
-                        "VALUE": st.column_config.NumberColumn("實際值", format="%.2f"),
-                        "趨勢值": st.column_config.NumberColumn("趨勢值", format="%.2f"),
-                        "季節性值": st.column_config.NumberColumn("季節性值", format="%.2f"),
-                        "殘差值": st.column_config.NumberColumn("殘差值", format="%.2f"),
-                        "重建值": st.column_config.NumberColumn("重建值", format="%.2f")
-                    }
-                )
+                st.dataframe(outlier_df[['REPORT_TIME', 'VALUE', '趨勢值', '季節性值', '殘差值', '重建值']])
             else:
                 st.success("✅ 未發現異常點")
                 

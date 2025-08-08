@@ -148,7 +148,7 @@ def trend_analysis(kpi_data: pd.DataFrame, kpi_name: str, fab_name: str):
         height=500
     )
     
-    st.plotly_chart(fig, use_container_width=True)
+    st.plotly_chart(fig)
     
     # 趨勢變化率分析
     st.subheader("📈 趨勢變化率分析")
@@ -171,7 +171,7 @@ def trend_analysis(kpi_data: pd.DataFrame, kpi_name: str, fab_name: str):
         '變化率(%)': [f"{rate:.2f}%" if rate is not None else "N/A" for rate in change_rates]
     })
     
-    st.dataframe(change_df, use_container_width=True)
+    st.dataframe(change_df)
 
 def periodicity_analysis(kpi_data: pd.DataFrame, kpi_name: str, fab_name: str):
     """週期性分析"""
@@ -248,7 +248,7 @@ def periodicity_analysis(kpi_data: pd.DataFrame, kpi_name: str, fab_name: str):
     )
     
     fig.update_layout(height=600, showlegend=False)
-    st.plotly_chart(fig, use_container_width=True)
+    st.plotly_chart(fig)
 
 def autocorrelation_analysis(kpi_data: pd.DataFrame, kpi_name: str, fab_name: str):
     """自相關分析"""
@@ -312,7 +312,7 @@ def autocorrelation_analysis(kpi_data: pd.DataFrame, kpi_name: str, fab_name: st
     )
     
     fig.update_layout(height=600, showlegend=False)
-    st.plotly_chart(fig, use_container_width=True)
+    st.plotly_chart(fig)
     
     # 顯著滯後分析
     if significant_lags:
@@ -322,7 +322,7 @@ def autocorrelation_analysis(kpi_data: pd.DataFrame, kpi_name: str, fab_name: st
             '自相關係數': [autocorr[lag-1] for lag in significant_lags],
             '可能原因': [get_lag_interpretation(lag) for lag in significant_lags]
         })
-        st.dataframe(sig_df, use_container_width=True)
+        st.dataframe(sig_df)
 
 def get_lag_interpretation(lag: int) -> str:
     """解釋滯後的可能原因"""
@@ -420,7 +420,7 @@ def changepoint_detection(kpi_data: pd.DataFrame, kpi_name: str, fab_name: str):
         height=500
     )
     
-    st.plotly_chart(fig, use_container_width=True)
+    st.plotly_chart(fig)
     
     # 變點詳情
     if changepoints:
@@ -441,7 +441,7 @@ def changepoint_detection(kpi_data: pd.DataFrame, kpi_name: str, fab_name: str):
                 '變化後平均': f"{after_mean:.2f}"
             })
         
-        st.dataframe(pd.DataFrame(cp_details), use_container_width=True)
+        st.dataframe(pd.DataFrame(cp_details))
 
 def detect_changepoints(values: np.ndarray, min_size: int = 5) -> List[int]:
     """簡單的變點檢測算法"""
@@ -529,7 +529,7 @@ def time_series_decomposition(kpi_data: pd.DataFrame, kpi_name: str, fab_name: s
         )
         
         fig.update_layout(height=800, showlegend=False, title_text=f"{fab_name} - {kpi_name} 時序分解")
-        st.plotly_chart(fig, use_container_width=True)
+        st.plotly_chart(fig)
         
         # 分解統計
         col1, col2, col3 = st.columns(3)
@@ -645,7 +645,7 @@ def anomaly_pattern_analysis(fab_data: pd.DataFrame, selected_kpis: List[str], f
     )
     
     fig.update_layout(height=800, showlegend=False)
-    st.plotly_chart(fig, use_container_width=True)
+    st.plotly_chart(fig)
     
     # 異常時間點詳情
     if len(anomaly_indices) > 0:
@@ -668,7 +668,7 @@ def anomaly_pattern_analysis(fab_data: pd.DataFrame, selected_kpis: List[str], f
                 'Z-Score': f"{z_scores[most_anomalous_kpi]:.3f}"
             })
         
-        st.dataframe(pd.DataFrame(anomaly_details), use_container_width=True)
+        st.dataframe(pd.DataFrame(anomaly_details))
 
 # 新增其他頁面的佔位函數
 def anomaly_trend_analysis_page():

@@ -212,7 +212,7 @@ def display_monitoring_overview(results: Dict, fab_name: str):
         height=400
     )
     
-    st.plotly_chart(fig, use_container_width=True)
+    st.plotly_chart(fig)
 
 def display_detailed_results(results: Dict, fab_data: pd.DataFrame):
     """顯示詳細結果"""
@@ -276,7 +276,7 @@ def display_detailed_results(results: Dict, fab_data: pd.DataFrame):
         showlegend=False
     )
     
-    st.plotly_chart(fig, use_container_width=True)
+    st.plotly_chart(fig)
 
 def display_anomaly_ranking(results: Dict):
     """顯示異常排名"""
@@ -309,16 +309,7 @@ def display_anomaly_ranking(results: Dict):
     
     styled_df = ranking_df.style.applymap(color_risk_level, subset=['風險等級'])
     
-    st.dataframe(
-        styled_df,
-        use_container_width=True,
-        column_config={
-            "異常點數": st.column_config.NumberColumn("異常點數", format="%d"),
-            "異常率": st.column_config.TextColumn("異常率"),
-            "最新值": st.column_config.TextColumn("最新值"),
-            "波動性": st.column_config.TextColumn("波動性")
-        }
-    )
+    st.dataframe(styled_df)
     
     # 風險分佈餅圖
     risk_counts = ranking_df['風險等級'].value_counts()
@@ -335,7 +326,7 @@ def display_anomaly_ranking(results: Dict):
         height=400
     )
     
-    st.plotly_chart(fig, use_container_width=True)
+    st.plotly_chart(fig)
 
 def get_risk_level(anomaly_rate: float) -> str:
     """根據異常率判斷風險等級"""

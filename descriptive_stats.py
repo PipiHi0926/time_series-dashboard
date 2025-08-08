@@ -553,7 +553,7 @@ def display_kpi_classification_charts(profiles: Dict):
     )
     
     fig.update_layout(height=400, showlegend=False)
-    st.plotly_chart(fig, use_container_width=True)
+    st.plotly_chart(fig)
 
 def display_detailed_analysis(profiles: Dict, fab_data: pd.DataFrame):
     """顯示詳細分析"""
@@ -595,7 +595,7 @@ def display_kpi_basic_info(profile: Dict):
             ['偏度', f"{profile['basic_stats']['skewness']:.4f}"],
             ['峰度', f"{profile['basic_stats']['kurtosis']:.4f}"]
         ], columns=['統計量', '值'])
-        st.dataframe(stats_df, use_container_width=True, hide_index=True)
+        st.dataframe(stats_df, )
     
     with col2:
         st.write("**🏷️ KPI 標籤**")
@@ -652,7 +652,7 @@ def display_statistical_tests(profile: Dict):
             })
     
     if test_results:
-        st.dataframe(pd.DataFrame(test_results), use_container_width=True, hide_index=True)
+        st.dataframe(pd.DataFrame(test_results), )
 
 def format_test_name(test_name: str) -> str:
     """格式化檢驗名稱"""
@@ -727,7 +727,7 @@ def display_kpi_visualization(profile: Dict, fab_data: pd.DataFrame, kpi_name: s
     )
     
     fig.update_layout(height=600, showlegend=False)
-    st.plotly_chart(fig, use_container_width=True)
+    st.plotly_chart(fig)
 
 def display_methodology_recommendations(profiles: Dict):
     """顯示方法論建議"""
