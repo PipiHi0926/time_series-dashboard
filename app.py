@@ -33,6 +33,53 @@ def apply_basic_css():
     """
     st.markdown(basic_css, unsafe_allow_html=True)
 
+def prepare_plotly_data(x_data, y_data):
+    """準備 Plotly 圖表數據，確保格式正確"""
+    # 轉換為純 numpy 數組或 Python 列表，避免 pandas 索引問題
+    if hasattr(x_data, 'values'):
+        x_clean = x_data.values
+    else:
+        x_clean = np.array(x_data)
+    
+    if hasattr(y_data, 'values'):
+        y_clean = y_data.values
+    else:
+        y_clean = np.array(y_data)
+    
+    # 確保數據長度一致
+    min_len = min(len(x_clean), len(y_clean))
+    x_clean = x_clean[:min_len]
+    y_clean = y_clean[:min_len]
+    
+    return x_clean, y_clean
+
+def ensure_data_format(df):
+    """確保數據格式正確"""
+    if df is None:
+        return None
+    
+    # 確保必要欄位存在
+    required_columns = ['FAB', 'VALUE', 'KPI', 'REPORT_TIME']
+    if not all(col in df.columns for col in required_columns):
+        raise ValueError(f"缺少必要欄位: {required_columns}")
+    
+    # 複製數據避免修改原始數據
+    df = df.copy()
+    
+    # 確保數據類型正確
+    df['REPORT_TIME'] = pd.to_datetime(df['REPORT_TIME'], errors='coerce')
+    df['VALUE'] = pd.to_numeric(df['VALUE'], errors='coerce')
+    df['FAB'] = df['FAB'].astype(str)
+    df['KPI'] = df['KPI'].astype(str)
+    
+    # 移除無效數值
+    df = df.dropna(subset=['VALUE', 'REPORT_TIME'])
+    
+    # 確保索引是連續的
+    df = df.sort_values(['FAB', 'KPI', 'REPORT_TIME']).reset_index(drop=True)
+    
+    return df
+
 def main():
     # 應用基本CSS
     apply_basic_css()
@@ -139,6 +186,7 @@ def show_sidebar_data_status():
         st.sidebar.warning("⚠️ 尚未載入資料")
         if st.sidebar.button("🎯 載入範例資料", key="sidebar_load_sample"):
             sample_data = generate_fab_sample_data()
+            sample_data = ensure_data_format(sample_data)
             st.session_state.raw_data = sample_data
             # 自動選擇第一個 FAB 和 KPI
             first_fab = sample_data['FAB'].iloc[0]
@@ -168,6 +216,7 @@ def kpi_quick_analysis_page():
             if st.button("🚀 載入範例資料開始分析", key="quick_load_sample"):
                 with st.spinner("正在載入範例資料..."):
                     sample_data = generate_fab_sample_data()
+                    sample_data = ensure_data_format(sample_data)
                     st.session_state.raw_data = sample_data
                     # 自動選擇第一個 FAB 和 KPI
                     first_fab = sample_data['FAB'].iloc[0]
@@ -196,12 +245,9 @@ def kpi_quick_analysis_page():
                     else:
                         df = pd.read_excel(uploaded_file)
                     
-                    # 驗證格式
-                    required_columns = ['FAB', 'VALUE', 'KPI', 'REPORT_TIME']
-                    if all(col in df.columns for col in required_columns):
-                        df['REPORT_TIME'] = pd.to_datetime(df['REPORT_TIME'])
-                        df = df.sort_values(['FAB', 'KPI', 'REPORT_TIME'])
-                        
+                    # 確保數據格式正確
+                    try:
+                        df = ensure_data_format(df)
                         st.session_state.raw_data = df
                         # 自動選擇第一個 FAB 和 KPI
                         first_fab = df['FAB'].iloc[0]
@@ -212,8 +258,9 @@ def kpi_quick_analysis_page():
                         st.session_state.selected_kpi = st.session_state.available_kpis[0] if st.session_state.available_kpis else None
                         
                         st.success("✅ 資料上傳成功！🔄 請重新整理頁面")
-                    else:
-                        st.error("❌ 檔案格式不正確，請確保包含 FAB, VALUE, KPI, REPORT_TIME 欄位")
+                    except Exception as format_error:
+                        st.error(f"❌ 數據格式錯誤: {str(format_error)}")
+                        st.info("💡 請確保: 1) 包含 FAB, VALUE, KPI, REPORT_TIME 欄位 2) VALUE 為數值 3) REPORT_TIME 為有效日期格式")
                 except Exception as e:
                     st.error(f"❌ 讀取檔案時發生錯誤: {str(e)}")
         
@@ -264,10 +311,13 @@ def kpi_quick_analysis_page():
         # 創建圖表
         fig = go.Figure()
         
+        # 準備數據
+        x_data, y_data = prepare_plotly_data(kpi_data['REPORT_TIME'], kpi_data['VALUE'])
+        
         # 原始數據
         fig.add_trace(go.Scatter(
-            x=kpi_data['REPORT_TIME'],
-            y=kpi_data['VALUE'],
+            x=x_data,
+            y=y_data,
             mode='lines+markers',
             name='原始數據',
             line=dict(color='blue', width=2),
@@ -276,12 +326,14 @@ def kpi_quick_analysis_page():
         
         # 異常點
         if np.any(outliers):
-            outlier_dates = kpi_data[outliers]['REPORT_TIME']
-            outlier_values = kpi_data[outliers]['VALUE']
+            outlier_x, outlier_y = prepare_plotly_data(
+                kpi_data[outliers]['REPORT_TIME'], 
+                kpi_data[outliers]['VALUE']
+            )
             
             fig.add_trace(go.Scatter(
-                x=outlier_dates,
-                y=outlier_values,
+                x=outlier_x,
+                y=outlier_y,
                 mode='markers',
                 name='可能異常點',
                 marker=dict(color='red', size=8, symbol='x')
@@ -610,6 +662,7 @@ FAB14B,Yield,2024-01-01,89.5"""
             if st.button("🎯 載入範例數據"):
                 with st.spinner("正在生成範例數據..."):
                     sample_data = generate_fab_sample_data()
+                    sample_data = ensure_data_format(sample_data)
                     st.session_state.raw_data = sample_data
                 st.success("✅ 範例數據已載入！請選擇 FAB 進行分析。🔄 請重新整理頁面")
         
