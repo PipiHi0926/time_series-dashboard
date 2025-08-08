@@ -49,7 +49,7 @@ def level_shift_detection_page():
         min_shift_magnitude = st.number_input("最小變化幅度 (%):", 0.0, 50.0, 5.0, 0.5,
                                             help="視為Level Shift的最小變化百分比")
     
-    if st.button("🔍 執行 Level Shift 檢測", type="primary"):
+    if st.button("🔍 執行 Level Shift 檢測"):
         kpi_data = fab_data[fab_data['KPI'] == selected_kpi].copy()
         kpi_data = kpi_data.sort_values('REPORT_TIME')
         
@@ -112,7 +112,7 @@ def trend_momentum_analysis_page():
         default=["趨勢動量分析", "連續趨勢檢測"]
     )
     
-    if st.button("🔍 執行趨勢動量分析", type="primary"):
+    if st.button("🔍 執行趨勢動量分析"):
         kpi_data = fab_data[fab_data['KPI'] == selected_kpi].copy()
         kpi_data = kpi_data.sort_values('REPORT_TIME')
         

@@ -165,7 +165,7 @@ def kpi_quick_analysis_page():
             st.subheader("🎯 使用範例資料")
             st.write("載入包含 4 個 FAB、12 種 KPI 的範例資料，包含真實的異常模式和特殊事件。")
             
-            if st.button("🚀 載入範例資料開始分析", type="primary", key="quick_load_sample"):
+            if st.button("🚀 載入範例資料開始分析", key="quick_load_sample"):
                 with st.spinner("正在載入範例資料..."):
                     sample_data = generate_fab_sample_data()
                     st.session_state.raw_data = sample_data
@@ -524,8 +524,7 @@ FAB14B,Yield,2024-01-01,89.5"""
                     "選擇要預覽的 KPI (最多5個):",
                     options=available_kpis,
                     default=available_kpis[:min(5, len(available_kpis))],
-                    max_selections=5
-                )
+                                    )
                 
                 if preview_kpis:
                     # Create pivot table for visualization
@@ -608,7 +607,7 @@ FAB14B,Yield,2024-01-01,89.5"""
         col1, col2 = st.columns(2)
         
         with col1:
-            if st.button("🎯 載入範例數據", type="primary"):
+            if st.button("🎯 載入範例數據"):
                 with st.spinner("正在生成範例數據..."):
                     sample_data = generate_fab_sample_data()
                     st.session_state.raw_data = sample_data

@@ -41,7 +41,7 @@ def time_series_analysis_page():
             options=available_kpis
         )
         
-        if st.button("🔍 執行分析", type="primary"):
+        if st.button("🔍 執行分析"):
             kpi_data = fab_data[fab_data['KPI'] == selected_kpi].copy()
             kpi_data = kpi_data.sort_values('REPORT_TIME')
             
@@ -65,10 +65,9 @@ def time_series_analysis_page():
             "選擇要分析的 KPI (最多8個):",
             options=available_kpis,
             default=available_kpis[:min(4, len(available_kpis))],
-            max_selections=8
-        )
+                    )
         
-        if st.button("🔍 執行分析", type="primary"):
+        if st.button("🔍 執行分析"):
             if len(selected_kpis) < 2:
                 st.warning("⚠️ 異常模式分析至少需要選擇2個KPI")
                 return

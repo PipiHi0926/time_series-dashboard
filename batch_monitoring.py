@@ -58,7 +58,7 @@ def batch_kpi_monitoring_page():
         st.warning("⚠️ 請至少選擇一個 KPI")
         return
     
-    if st.button("🔍 執行批量監控", type="primary"):
+    if st.button("🔍 執行批量監控"):
         # 執行批量監控
         monitoring_results = perform_batch_monitoring(
             fab_data, selected_kpis, detection_method, threshold, window_size
@@ -190,7 +190,7 @@ def display_monitoring_overview(results: Dict, fab_name: str):
     
     with col4:
         high_risk_kpis = sum(1 for result in results.values() if result['anomaly_rate'] > 5)
-        st.metric("高風險 KPI", high_risk_kpis, delta_color="inverse")
+        st.metric("高風險 KPI", high_risk_kpis)
     
     # 異常率分佈圖
     kpi_names = list(results.keys())
