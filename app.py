@@ -34,17 +34,21 @@ def apply_basic_css():
     st.markdown(basic_css, unsafe_allow_html=True)
 
 def prepare_plotly_data(x_data, y_data):
-    """準備 Plotly 圖表數據，確保格式正確"""
-    # 轉換為純 numpy 數組或 Python 列表，避免 pandas 索引問題
+    """準備 Plotly 圖表數據，確保格式正確 - 轉換為 Python list"""
+    # 轉換為 Python 原生 list，這是 Plotly 5.6.0 唯一能正確處理的格式
     if hasattr(x_data, 'values'):
-        x_clean = x_data.values
+        x_clean = x_data.values.tolist()  # pandas Series -> numpy array -> list
+    elif hasattr(x_data, 'tolist'):
+        x_clean = x_data.tolist()  # numpy array -> list
     else:
-        x_clean = np.array(x_data)
+        x_clean = list(x_data)  # 其他類型 -> list
     
     if hasattr(y_data, 'values'):
-        y_clean = y_data.values
+        y_clean = y_data.values.tolist()  # pandas Series -> numpy array -> list
+    elif hasattr(y_data, 'tolist'):
+        y_clean = y_data.tolist()  # numpy array -> list
     else:
-        y_clean = np.array(y_data)
+        y_clean = list(y_data)  # 其他類型 -> list
     
     # 確保數據長度一致
     min_len = min(len(x_clean), len(y_clean))
