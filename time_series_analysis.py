@@ -1,32 +1,20 @@
 import streamlit as st
 import pandas as pd
 import numpy as np
-import plotly.graph_objects as go
-from plotly.subplots import make_subplots
+import matplotlib.pyplot as plt
+import matplotlib.dates as mdates
+from matplotlib.patches import Rectangle
 from typing import Dict, List, Tuple, Optional
 from scipy import stats
 from sklearn.preprocessing import StandardScaler
 from sklearn.decomposition import PCA
 import warnings
 warnings.filterwarnings('ignore')
+from matplotlib_utils import render_matplotlib_figure
 
-def to_plotly_list(data):
-    """將任何數據格式轉換為 Plotly 5.6.0 相容的 Python list"""
-    if data is None:
-        return []
-    
-    # 處理 pandas Series
-    if hasattr(data, 'values'):
-        return data.values.tolist()
-    # 處理 numpy array
-    elif hasattr(data, 'tolist'):
-        return data.tolist() 
-    # 處理其他可迭代對象
-    elif hasattr(data, '__iter__') and not isinstance(data, str):
-        return list(data)
-    # 單一值
-    else:
-        return [data]
+plt.rcParams['font.sans-serif'] = ['Microsoft JhengHei', 'DejaVu Sans']
+plt.rcParams['axes.unicode_minus'] = False
+
 
 def time_series_analysis_page():
     """時序分析頁面"""
@@ -122,24 +110,17 @@ def trend_analysis(kpi_data: pd.DataFrame, kpi_name: str, fab_name: str):
         st.metric("趨勢顯著性", significance)
     
     # 趨勢圖
-    fig = go.Figure()
+    fig, ax = plt.subplots(figsize=(14, 6))
+    
+    # 轉換日期格式
+    dates = pd.to_datetime(dates)
     
     # 原始數據
-    fig.add_trace(go.Scatter(
-        x=to_plotly_list(dates), y=to_plotly_list(values),
-        mode='lines+markers',
-        name='原始數據',
-        line=dict(color='blue', width=2),
-        marker=dict(size=4)
-    ))
+    ax.plot(dates, values, 'b-', linewidth=2, label='原始數據', marker='o', markersize=3)
     
     # 趨勢線
-    fig.add_trace(go.Scatter(
-        x=to_plotly_list(dates), y=to_plotly_list(trend_line),
-        mode='lines',
-        name=f'線性趨勢 (斜率={slope:.4f})',
-        line=dict(color='red', width=2, dash='dash')
-    ))
+    ax.plot(dates, trend_line, 'r--', linewidth=2, 
+            label=f'線性趨勢 (斜率={slope:.4f})')
     
     # 移動平均
     window_sizes = [7, 30, 90]
@@ -148,22 +129,22 @@ def trend_analysis(kpi_data: pd.DataFrame, kpi_name: str, fab_name: str):
     for window, color in zip(window_sizes, colors):
         if len(values) >= window:
             ma = pd.Series(values).rolling(window=window).mean()
-            fig.add_trace(go.Scatter(
-                x=to_plotly_list(dates), y=to_plotly_list(ma),
-                mode='lines',
-                name=f'{window}日移動平均',
-                line=dict(color=color, width=1.5)
-            ))
+            ax.plot(dates, ma, color=color, linewidth=1.5, 
+                   label=f'{window}日移動平均')
     
-    fig.update_layout(
-        title=f"{fab_name} - {kpi_name} 趨勢分析",
-        xaxis_title="時間",
-        yaxis_title="數值",
-        hovermode='x unified',
-        height=500
-    )
+    ax.set_title(f"{fab_name} - {kpi_name} 趨勢分析", fontsize=14, fontweight='bold')
+    ax.set_xlabel("時間", fontsize=12)
+    ax.set_ylabel("數值", fontsize=12)
+    ax.legend(loc='best', fontsize=10)
+    ax.grid(True, alpha=0.3)
     
-    st.plotly_chart(fig)
+    # 格式化x軸日期
+    ax.xaxis.set_major_formatter(mdates.DateFormatter('%m-%d'))
+    ax.xaxis.set_major_locator(mdates.DayLocator(interval=max(1, len(dates)//20)))
+    plt.setp(ax.xaxis.get_majorticklabels(), rotation=45)
+    
+    plt.tight_layout()
+    render_matplotlib_figure(fig)
     
     # 趨勢變化率分析
     st.subheader("📈 趨勢變化率分析")
@@ -225,45 +206,56 @@ def periodicity_analysis(kpi_data: pd.DataFrame, kpi_name: str, fab_name: str):
         st.dataframe(weekly_stats)
     
     # 視覺化
-    fig = make_subplots(
-        rows=2, cols=2,
-        subplot_titles=('原始時序', '頻譜分析', '週間模式', '自相關函數'),
-        specs=[[{"secondary_y": False}, {"secondary_y": False}],
-               [{"secondary_y": False}, {"secondary_y": False}]]
-    )
+    fig, axes = plt.subplots(2, 2, figsize=(14, 10))
+    fig.suptitle('週期性分析結果', fontsize=16, fontweight='bold')
+    
+    # 轉換日期格式
+    dates = pd.to_datetime(dates)
     
     # 原始時序
-    fig.add_trace(
-        go.Scatter(x=to_plotly_list(dates), y=to_plotly_list(values), mode='lines', name='原始數據'),
-        row=1, col=1
-    )
+    axes[0,0].plot(dates, values, 'b-', linewidth=1)
+    axes[0,0].set_title('原始時序')
+    axes[0,0].set_xlabel('時間')
+    axes[0,0].set_ylabel('數值')
+    axes[0,0].grid(True, alpha=0.3)
+    axes[0,0].xaxis.set_major_formatter(mdates.DateFormatter('%m-%d'))
+    plt.setp(axes[0,0].xaxis.get_majorticklabels(), rotation=45)
     
-    # 頻譜
-    fig.add_trace(
-        go.Scatter(x=to_plotly_list(freqs[1:len(freqs)//2]), y=to_plotly_list(power[1:len(power)//2]), 
-                   mode='lines', name='功率譜'),
-        row=1, col=2
-    )
+    # 頻譜分析
+    axes[0,1].plot(freqs[1:len(freqs)//2], power[1:len(power)//2], 'g-')
+    axes[0,1].set_title('頻譜分析')
+    axes[0,1].set_xlabel('頻率')
+    axes[0,1].set_ylabel('功率譜')
+    axes[0,1].grid(True, alpha=0.3)
     
     # 週間模式
     day_order = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
+    day_names_zh = ['週一', '週二', '週三', '週四', '週五', '週六', '週日']
     weekly_means = [weekly_stats.loc[day, 'mean'] if day in weekly_stats.index else 0 for day in day_order]
     
-    fig.add_trace(
-        go.Bar(x=to_plotly_list(day_order), y=to_plotly_list(weekly_means), name='週間平均'),
-        row=2, col=1
-    )
+    bars = axes[1,0].bar(day_names_zh, weekly_means, color='lightblue', alpha=0.7)
+    axes[1,0].set_title('週間模式')
+    axes[1,0].set_xlabel('星期')
+    axes[1,0].set_ylabel('平均值')
+    axes[1,0].grid(True, alpha=0.3, axis='y')
+    plt.setp(axes[1,0].xaxis.get_majorticklabels(), rotation=45)
     
-    # 自相關
+    # 添加數值標籤
+    for bar, mean in zip(bars, weekly_means):
+        axes[1,0].text(bar.get_x() + bar.get_width()/2, bar.get_height() + 0.01*max(weekly_means),
+                      f'{mean:.1f}', ha='center', va='bottom', fontsize=8)
+    
+    # 自相關函數
     autocorr = [np.corrcoef(values[:-i], values[i:])[0,1] for i in range(1, min(50, len(values)//2))]
-    fig.add_trace(
-        go.Scatter(x=list(range(1, len(autocorr)+1)), y=to_plotly_list(autocorr), 
-                   mode='lines+markers', name='自相關'),
-        row=2, col=2
-    )
+    axes[1,1].plot(range(1, len(autocorr)+1), autocorr, 'r-', marker='o', markersize=3)
+    axes[1,1].axhline(y=0, color='black', linestyle='-', alpha=0.3)
+    axes[1,1].set_title('自相關函數')
+    axes[1,1].set_xlabel('延遲(天)')
+    axes[1,1].set_ylabel('自相關係數')
+    axes[1,1].grid(True, alpha=0.3)
     
-    fig.update_layout(height=600, showlegend=False)
-    st.plotly_chart(fig)
+    plt.tight_layout()
+    render_matplotlib_figure(fig)
 
 def autocorrelation_analysis(kpi_data: pd.DataFrame, kpi_name: str, fab_name: str):
     """自相關分析"""
@@ -301,33 +293,48 @@ def autocorrelation_analysis(kpi_data: pd.DataFrame, kpi_name: str, fab_name: st
         st.metric("短期持續性", f"{persistence}/7天")
     
     # 視覺化
-    fig = make_subplots(
-        rows=2, cols=1,
-        subplot_titles=('自相關函數', '顯著性檢驗'),
-        vertical_spacing=0.1
-    )
+    fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(14, 8))
+    fig.suptitle('自相關分析結果', fontsize=16, fontweight='bold')
     
     # 自相關函數
-    fig.add_trace(
-        go.Scatter(x=to_plotly_list(list(lags)), y=to_plotly_list(autocorr), 
-                   mode='lines+markers', name='自相關'),
-        row=1, col=1
-    )
+    ax1.plot(list(lags), autocorr, 'b-', marker='o', markersize=4, label='自相關')
     
     # 添加置信區間
     confidence_level = 1.96 / np.sqrt(len(values))
-    fig.add_hline(y=confidence_level, line_dash="dash", line_color="red", row=1, col=1)
-    fig.add_hline(y=-confidence_level, line_dash="dash", line_color="red", row=1, col=1)
+    ax1.axhline(y=confidence_level, linestyle='--', color='red', alpha=0.7, label=f'95%置信區間 (±{confidence_level:.3f})')
+    ax1.axhline(y=-confidence_level, linestyle='--', color='red', alpha=0.7)
+    ax1.fill_between(list(lags), -confidence_level, confidence_level, alpha=0.1, color='red')
+    
+    ax1.set_title('自相關函數')
+    ax1.set_xlabel('延遲(天)')
+    ax1.set_ylabel('自相關係數')
+    ax1.legend()
+    ax1.grid(True, alpha=0.3)
+    ax1.axhline(y=0, color='black', linestyle='-', alpha=0.3)
     
     # 顯著性條形圖
-    colors = ['red' if abs(corr) > confidence_level else 'blue' for corr in autocorr]
-    fig.add_trace(
-        go.Bar(x=to_plotly_list(list(lags)), y=to_plotly_list(autocorr), marker_color=colors, name='顯著性'),
-        row=2, col=1
-    )
+    colors = ['red' if abs(corr) > confidence_level else 'lightblue' for corr in autocorr]
+    bars = ax2.bar(list(lags), autocorr, color=colors, alpha=0.7)
     
-    fig.update_layout(height=600, showlegend=False)
-    st.plotly_chart(fig)
+    # 添加置信區間線
+    ax2.axhline(y=confidence_level, linestyle='--', color='red', alpha=0.7)
+    ax2.axhline(y=-confidence_level, linestyle='--', color='red', alpha=0.7)
+    ax2.axhline(y=0, color='black', linestyle='-', alpha=0.5)
+    
+    ax2.set_title('顯著性檢驗')
+    ax2.set_xlabel('延遲(天)')
+    ax2.set_ylabel('自相關係數')
+    ax2.grid(True, alpha=0.3)
+    
+    # 標記顯著的自相關
+    for i, (lag, corr) in enumerate(zip(lags, autocorr)):
+        if abs(corr) > confidence_level:
+            ax2.text(lag, corr + 0.02*np.sign(corr), f'{corr:.2f}', 
+                    ha='center', va='bottom' if corr > 0 else 'top', 
+                    fontsize=8, color='darkred')
+    
+    plt.tight_layout()
+    render_matplotlib_figure(fig)
     
     # 顯著滯後分析
     if significant_lags:
@@ -389,26 +396,22 @@ def changepoint_detection(kpi_data: pd.DataFrame, kpi_name: str, fab_name: str):
         st.metric("穩定性評分", f"{stability_score:.2f}")
     
     # 視覺化
-    fig = go.Figure()
+    fig, ax = plt.subplots(figsize=(14, 6))
+    
+    # 轉換日期格式
+    dates = pd.to_datetime(dates)
     
     # 原始數據
-    fig.add_trace(go.Scatter(
-        x=to_plotly_list(dates), y=to_plotly_list(values),
-        mode='lines+markers',
-        name='原始數據',
-        line=dict(color='blue', width=2),
-        marker=dict(size=4)
-    ))
+    ax.plot(dates, values, 'b-', linewidth=2, label='原始數據', marker='o', markersize=3)
     
     # 標記變點
     if changepoints:
-        for cp in changepoints:
-            fig.add_vline(
-                x=dates[cp],
-                line_dash="dash",
-                line_color="red",
-                annotation_text=f"變點 {cp}"
-            )
+        for i, cp in enumerate(changepoints):
+            ax.axvline(x=dates[cp], color='red', linestyle='--', alpha=0.7, linewidth=2)
+            ax.annotate(f'變點{i+1}', xy=(dates[cp], values[cp]), 
+                       xytext=(5, 10), textcoords='offset points',
+                       fontsize=9, color='red', fontweight='bold',
+                       bbox=dict(boxstyle='round,pad=0.3', facecolor='yellow', alpha=0.7))
     
     # 添加分段平均線
     if changepoints:
@@ -418,22 +421,25 @@ def changepoint_detection(kpi_data: pd.DataFrame, kpi_name: str, fab_name: str):
         for i in range(len(segments) - 1):
             start, end = segments[i], segments[i + 1]
             segment_mean = np.mean(values[start:end])
+            segment_dates = dates[start:end]
             
-            fig.add_trace(go.Scatter(
-                x=to_plotly_list(dates[start:end]), y=to_plotly_list([segment_mean] * (end - start)),
-                mode='lines',
-                name=f'段 {i+1} 平均',
-                line=dict(color=colors[i % len(colors)], width=3)
-            ))
+            ax.plot(segment_dates, [segment_mean] * len(segment_dates),
+                   color=colors[i % len(colors)], linewidth=3, alpha=0.8,
+                   label=f'段{i+1}平均 ({segment_mean:.2f})')
     
-    fig.update_layout(
-        title=f"{fab_name} - {kpi_name} 變點檢測",
-        xaxis_title="時間",
-        yaxis_title="數值",
-        height=500
-    )
+    ax.set_title(f"{fab_name} - {kpi_name} 變點檢測", fontsize=14, fontweight='bold')
+    ax.set_xlabel("時間", fontsize=12)
+    ax.set_ylabel("數值", fontsize=12)
+    ax.legend(loc='best', fontsize=10)
+    ax.grid(True, alpha=0.3)
     
-    st.plotly_chart(fig)
+    # 格式化x軸日期
+    ax.xaxis.set_major_formatter(mdates.DateFormatter('%m-%d'))
+    ax.xaxis.set_major_locator(mdates.DayLocator(interval=max(1, len(dates)//20)))
+    plt.setp(ax.xaxis.get_majorticklabels(), rotation=45)
+    
+    plt.tight_layout()
+    render_matplotlib_figure(fig)
     
     # 變點詳情
     if changepoints:
@@ -510,39 +516,46 @@ def time_series_decomposition(kpi_data: pd.DataFrame, kpi_name: str, fab_name: s
         decomposition = seasonal_decompose(values, model='additive', period=30, extrapolate_trend='freq')
         
         # 創建子圖
-        fig = make_subplots(
-            rows=4, cols=1,
-            subplot_titles=('原始數據', '趨勢', '季節性', '殘差'),
-            vertical_spacing=0.08,
-            shared_xaxes=True
-        )
+        fig, axes = plt.subplots(4, 1, figsize=(14, 12), sharex=True)
+        fig.suptitle(f"{fab_name} - {kpi_name} 時序分解", fontsize=16, fontweight='bold')
+        
+        # 轉換日期格式
+        dates = pd.to_datetime(dates)
         
         # 原始數據
-        fig.add_trace(
-            go.Scatter(x=to_plotly_list(dates), y=to_plotly_list(values), mode='lines', name='原始', line=dict(color='blue')),
-            row=1, col=1
-        )
+        axes[0].plot(dates, values, 'b-', linewidth=1.5)
+        axes[0].set_title('原始數據')
+        axes[0].set_ylabel('數值')
+        axes[0].grid(True, alpha=0.3)
         
         # 趨勢
-        fig.add_trace(
-            go.Scatter(x=to_plotly_list(dates), y=to_plotly_list(decomposition.trend), mode='lines', name='趨勢', line=dict(color='green')),
-            row=2, col=1
-        )
+        axes[1].plot(dates, decomposition.trend, 'g-', linewidth=2)
+        axes[1].set_title('趨勢')
+        axes[1].set_ylabel('趨勢')
+        axes[1].grid(True, alpha=0.3)
         
         # 季節性
-        fig.add_trace(
-            go.Scatter(x=to_plotly_list(dates), y=to_plotly_list(decomposition.seasonal), mode='lines', name='季節性', line=dict(color='orange')),
-            row=3, col=1
-        )
+        axes[2].plot(dates, decomposition.seasonal, 'orange', linewidth=1)
+        axes[2].set_title('季節性')
+        axes[2].set_ylabel('季節性')
+        axes[2].grid(True, alpha=0.3)
+        axes[2].axhline(y=0, color='black', linestyle='-', alpha=0.3)
         
         # 殘差
-        fig.add_trace(
-            go.Scatter(x=to_plotly_list(dates), y=to_plotly_list(decomposition.resid), mode='lines', name='殘差', line=dict(color='red')),
-            row=4, col=1
-        )
+        axes[3].plot(dates, decomposition.resid, 'r-', linewidth=1)
+        axes[3].set_title('殘差')
+        axes[3].set_ylabel('殘差')
+        axes[3].set_xlabel('時間')
+        axes[3].grid(True, alpha=0.3)
+        axes[3].axhline(y=0, color='black', linestyle='-', alpha=0.3)
         
-        fig.update_layout(height=800, showlegend=False, title_text=f"{fab_name} - {kpi_name} 時序分解")
-        st.plotly_chart(fig)
+        # 格式化x軸日期（只在最下面的子圖）
+        axes[3].xaxis.set_major_formatter(mdates.DateFormatter('%m-%d'))
+        axes[3].xaxis.set_major_locator(mdates.DayLocator(interval=max(1, len(dates)//20)))
+        plt.setp(axes[3].xaxis.get_majorticklabels(), rotation=45)
+        
+        plt.tight_layout()
+        render_matplotlib_figure(fig)
         
         # 分解統計
         col1, col2, col3 = st.columns(3)
@@ -618,47 +631,78 @@ def anomaly_pattern_analysis(fab_data: pd.DataFrame, selected_kpis: List[str], f
         st.metric("異常比例", f"{anomaly_rate:.2f}%")
     
     # PCA 可視化
-    fig = make_subplots(
-        rows=2, cols=2,
-        subplot_titles=('PCA 前兩個主成分', 'PCA 貢獻率', '異常分數時序', 'KPI 相關性熱圖'),
-        specs=[[{"secondary_y": False}, {"secondary_y": False}],
-               [{"secondary_y": False}, {"secondary_y": False}]]
-    )
+    fig, axes = plt.subplots(2, 2, figsize=(16, 12))
+    fig.suptitle('異常模式分析結果', fontsize=16, fontweight='bold')
     
     # PCA 散點圖
     colors = ['red' if i in anomaly_indices else 'blue' for i in range(len(pca_result))]
-    fig.add_trace(
-        go.Scatter(x=to_plotly_list(pca_result[:, 0]), y=to_plotly_list(pca_result[:, 1]), 
-                   mode='markers', marker=dict(color=colors),
-                   name='數據點'),
-        row=1, col=1
-    )
+    scatter = axes[0,0].scatter(pca_result[:, 0], pca_result[:, 1], c=colors, alpha=0.6, s=30)
+    axes[0,0].set_title('PCA 前兩個主成分')
+    axes[0,0].set_xlabel(f'PC1 ({pca.explained_variance_ratio_[0]:.2%} 變異)')
+    axes[0,0].set_ylabel(f'PC2 ({pca.explained_variance_ratio_[1]:.2%} 變異)')
+    axes[0,0].grid(True, alpha=0.3)
+    
+    # 添加圖例
+    from matplotlib.patches import Patch
+    legend_elements = [Patch(facecolor='blue', alpha=0.6, label='正常點'),
+                      Patch(facecolor='red', alpha=0.6, label='異常點')]
+    axes[0,0].legend(handles=legend_elements, loc='best')
     
     # PCA 貢獻率
-    fig.add_trace(
-        go.Bar(x=to_plotly_list([f'PC{i+1}' for i in range(len(pca.explained_variance_ratio_))]),
-               y=to_plotly_list(pca.explained_variance_ratio_), name='貢獻率'),
-        row=1, col=2
-    )
+    pc_names = [f'PC{i+1}' for i in range(len(pca.explained_variance_ratio_))]
+    bars = axes[0,1].bar(pc_names, pca.explained_variance_ratio_, color='lightblue', alpha=0.7)
+    axes[0,1].set_title('PCA 貢獻率')
+    axes[0,1].set_xlabel('主成分')
+    axes[0,1].set_ylabel('解釋變異比例')
+    axes[0,1].grid(True, alpha=0.3, axis='y')
+    
+    # 添加數值標籤
+    for bar, ratio in zip(bars, pca.explained_variance_ratio_):
+        axes[0,1].text(bar.get_x() + bar.get_width()/2, bar.get_height() + 0.005,
+                      f'{ratio:.2%}', ha='center', va='bottom', fontsize=9)
     
     # 異常分數時序
-    fig.add_trace(
-        go.Scatter(x=to_plotly_list(pivot_data.index), y=to_plotly_list(mahalanobis_distances),
-                   mode='lines+markers', name='異常分數'),
-        row=2, col=1
-    )
-    fig.add_hline(y=threshold, line_dash="dash", line_color="red", row=2, col=1)
+    dates_pd = pd.to_datetime(pivot_data.index)
+    axes[1,0].plot(dates_pd, mahalanobis_distances, 'b-', linewidth=1, marker='o', markersize=2)
+    axes[1,0].axhline(y=threshold, color='red', linestyle='--', alpha=0.7, 
+                      label=f'閾值 ({threshold:.3f})')
     
-    # 相關性熱圖
+    # 標記異常點
+    if len(anomaly_indices) > 0:
+        axes[1,0].scatter(dates_pd.iloc[anomaly_indices], 
+                         np.array(mahalanobis_distances)[anomaly_indices],
+                         color='red', s=30, zorder=5, label='異常點')
+    
+    axes[1,0].set_title('異常分數時序')
+    axes[1,0].set_xlabel('時間')
+    axes[1,0].set_ylabel('異常分數')
+    axes[1,0].legend()
+    axes[1,0].grid(True, alpha=0.3)
+    axes[1,0].xaxis.set_major_formatter(mdates.DateFormatter('%m-%d'))
+    plt.setp(axes[1,0].xaxis.get_majorticklabels(), rotation=45)
+    
+    # KPI 相關性熱圖
     corr_matrix = pivot_data.corr()
-    fig.add_trace(
-        go.Heatmap(z=to_plotly_list(corr_matrix.values), x=to_plotly_list(corr_matrix.columns), y=to_plotly_list(corr_matrix.index),
-                   colorscale='RdYlBu', zmid=0),
-        row=2, col=2
-    )
+    im = axes[1,1].imshow(corr_matrix.values, cmap='RdYlBu', aspect='auto', vmin=-1, vmax=1)
     
-    fig.update_layout(height=800, showlegend=False)
-    st.plotly_chart(fig)
+    # 設置刻度標籤
+    axes[1,1].set_xticks(range(len(corr_matrix.columns)))
+    axes[1,1].set_yticks(range(len(corr_matrix.index)))
+    axes[1,1].set_xticklabels(corr_matrix.columns, rotation=45, ha='right')
+    axes[1,1].set_yticklabels(corr_matrix.index)
+    axes[1,1].set_title('KPI 相關性熱圖')
+    
+    # 添加顏色條
+    plt.colorbar(im, ax=axes[1,1], shrink=0.8)
+    
+    # 添加相關係數文本
+    for i in range(len(corr_matrix.index)):
+        for j in range(len(corr_matrix.columns)):
+            text = axes[1,1].text(j, i, f'{corr_matrix.iloc[i, j]:.2f}',
+                                 ha="center", va="center", color="black", fontsize=8)
+    
+    plt.tight_layout()
+    render_matplotlib_figure(fig)
     
     # 異常時間點詳情
     if len(anomaly_indices) > 0:

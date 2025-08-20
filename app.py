@@ -1,13 +1,17 @@
 import streamlit as st
 import pandas as pd
 import numpy as np
-import plotly.express as px
-import plotly.graph_objects as go
-from plotly.subplots import make_subplots
+import matplotlib.pyplot as plt
+import matplotlib.dates as mdates
+from matplotlib.patches import Rectangle
 from datetime import datetime, timedelta
 from typing import Optional, List, Dict
 import warnings
 warnings.filterwarnings('ignore')
+from matplotlib_utils import render_matplotlib_figure, create_zscore_analysis_plot, create_iqr_analysis_plot, create_anomaly_plot
+
+plt.rcParams['font.sans-serif'] = ['Microsoft JhengHei', 'DejaVu Sans']
+plt.rcParams['axes.unicode_minus'] = False
 
 st.set_page_config(
     page_title="FAB KPI OOB 監控 Dashboard",
@@ -33,23 +37,6 @@ def apply_basic_css():
     """
     st.markdown(basic_css, unsafe_allow_html=True)
 
-def to_plotly_list(data):
-    """將任何數據格式轉換為 Plotly 5.6.0 相容的 Python list"""
-    if data is None:
-        return []
-    
-    # 處理 pandas Series
-    if hasattr(data, 'values'):
-        return data.values.tolist()
-    # 處理 numpy array
-    elif hasattr(data, 'tolist'):
-        return data.tolist() 
-    # 處理其他可迭代對象
-    elif hasattr(data, '__iter__') and not isinstance(data, str):
-        return list(data)
-    # 單一值
-    else:
-        return [data]
 
 def prepare_plotly_data(x_data, y_data):
     """準備 Plotly 圖表數據，確保格式正確 - 轉換為 Python list"""
@@ -1231,51 +1218,42 @@ def statistical_detection_page():
         
         st.subheader("📈 時序圖與異常點")
         
-        # Create visualization
-        fig = go.Figure()
+        # Create visualization with matplotlib
+        dates = pd.to_datetime(kpi_data['REPORT_TIME'])
+        values = kpi_data['VALUE'].values
+        anomalies = outliers_info['outlier_indices']
+        scores = outliers_info['scores']
         
-        # Add original data
-        fig.add_trace(go.Scatter(
-            x=to_plotly_list(kpi_data['REPORT_TIME']), y=to_plotly_list(kpi_data['VALUE']),
-            mode='lines+markers',
-            name='原始數據',
-            line=dict(color='blue', width=2),
-            marker=dict(size=4)
-        ))
+        if detection_method == "Z-Score" or detection_method == "Modified Z-Score":
+            fig = create_zscore_analysis_plot(
+                dates=dates,
+                values=values,
+                z_scores=scores,
+                threshold=threshold,
+                outliers=anomalies,
+                title=f"{selected_fab} - {selected_kpi}"
+            )
+        elif detection_method == "IQR (四分位距)":
+            fig = create_iqr_analysis_plot(
+                dates=dates,
+                values=values,
+                outliers=anomalies,
+                iqr_multiplier=threshold,
+                title=f"{selected_fab} - {selected_kpi}"
+            )
+        else:
+            # Fallback to general anomaly plot
+            fig = create_anomaly_plot(
+                dates=dates,
+                values=values,
+                anomalies=anomalies,
+                title=f"{selected_fab} - {selected_kpi}",
+                method=detection_method,
+                scores=scores,
+                threshold=threshold
+            )
         
-        # Add outliers
-        if len(outliers_info['outlier_indices']) > 0:
-            outlier_dates = kpi_data.iloc[outliers_info['outlier_indices']]['REPORT_TIME']
-            outlier_values = kpi_data.iloc[outliers_info['outlier_indices']]['VALUE']
-        
-            fig.add_trace(go.Scatter(
-                x=to_plotly_list(outlier_dates), y=to_plotly_list(outlier_values),
-                mode='markers',
-                name='異常點',
-                marker=dict(color='red', size=10, symbol='x')
-            ))
-        
-        # Add threshold lines if applicable
-        if detection_method != "IQR (四分位距)":
-            mean_val = outliers_info['mean']
-            std_val = outliers_info['std']
-            upper_threshold = mean_val + threshold * std_val
-            lower_threshold = mean_val - threshold * std_val
-            
-            fig.add_hline(y=to_plotly_list(upper_threshold), line_dash="dash", line_color="orange", 
-                         annotation_text=f"上閾值 ({threshold}σ)")
-            fig.add_hline(y=to_plotly_list(lower_threshold), line_dash="dash", line_color="orange", 
-                         annotation_text=f"下閾值 (-{threshold}σ)")
-        
-        fig.update_layout(
-            title=f"{selected_fab} - {selected_kpi} - {detection_method} 異常偵測",
-            xaxis_title="報告時間",
-            yaxis_title="數值",
-            hovermode='x unified',
-            height=600
-        )
-        
-        st.plotly_chart(fig)
+        render_matplotlib_figure(fig)
         
         # Show statistics
         col1, col2, col3 = st.columns(3)

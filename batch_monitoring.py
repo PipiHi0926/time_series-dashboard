@@ -1,22 +1,15 @@
 import streamlit as st
 import pandas as pd
 import numpy as np
-import plotly.graph_objects as go
-from plotly.subplots import make_subplots
+import matplotlib.pyplot as plt
+import matplotlib.dates as mdates
+from matplotlib.patches import Rectangle
 from typing import Dict, List, Tuple
+from matplotlib_utils import render_matplotlib_figure
 
-def to_plotly_list(data):
-    """將任何數據格式轉換為 Plotly 5.6.0 相容的 Python list"""
-    if data is None:
-        return []
-    if hasattr(data, 'values'):
-        return data.values.tolist()
-    elif hasattr(data, 'tolist'):
-        return data.tolist() 
-    elif hasattr(data, '__iter__') and not isinstance(data, str):
-        return list(data)
-    else:
-        return [data]
+plt.rcParams['font.sans-serif'] = ['Microsoft JhengHei', 'DejaVu Sans']
+plt.rcParams['axes.unicode_minus'] = False
+
 
 def batch_kpi_monitoring_page():
     """KPI 批量監控頁面"""
@@ -209,22 +202,29 @@ def display_monitoring_overview(results: Dict, fab_name: str):
     kpi_names = list(results.keys())
     anomaly_rates = [results[kpi]['anomaly_rate'] for kpi in kpi_names]
     
-    fig = go.Figure(data=go.Bar(
-        x=to_plotly_list(kpi_names), y=to_plotly_list(anomaly_rates),
-        marker_color=['red' if rate > 5 else 'orange' if rate > 2 else 'green' 
-                     for rate in anomaly_rates],
-        text=[f"{rate:.1f}%" for rate in anomaly_rates],
-        textposition='auto'
-    ))
+    fig, ax = plt.subplots(figsize=(12, 6))
     
-    fig.update_layout(
-        title=f"{fab_name} - KPI 異常率分佈",
-        xaxis_title="KPI",
-        yaxis_title="異常率 (%)",
-        height=400
-    )
+    # 根據異常率設定顏色
+    colors = ['red' if rate > 5 else 'orange' if rate > 2 else 'green' 
+             for rate in anomaly_rates]
     
-    st.plotly_chart(fig)
+    bars = ax.bar(kpi_names, anomaly_rates, color=colors, alpha=0.7)
+    
+    # 添加數值標籤
+    for bar, rate in zip(bars, anomaly_rates):
+        ax.text(bar.get_x() + bar.get_width()/2, bar.get_height() + 0.1,
+               f'{rate:.1f}%', ha='center', va='bottom', fontsize=9)
+    
+    ax.set_title(f"{fab_name} - KPI 異常率分佈", fontsize=14, fontweight='bold')
+    ax.set_xlabel("KPI", fontsize=12)
+    ax.set_ylabel("異常率 (%)", fontsize=12)
+    ax.grid(True, alpha=0.3, axis='y')
+    
+    # 旋轉x軸標籤以避免重疊
+    plt.xticks(rotation=45, ha='right')
+    plt.tight_layout()
+    
+    render_matplotlib_figure(fig)
 
 def display_detailed_results(results: Dict, fab_data: pd.DataFrame):
     """顯示詳細結果"""
@@ -241,52 +241,53 @@ def display_detailed_results(results: Dict, fab_data: pd.DataFrame):
     else:
         rows, cols = 4, 3
     
-    fig = make_subplots(
-        rows=rows, cols=cols,
-        subplot_titles=kpi_names[:rows*cols],
-        vertical_spacing=0.08,
-        horizontal_spacing=0.05
-    )
+    fig, axes = plt.subplots(rows, cols, figsize=(14, 4*rows))
+    fig.suptitle("KPI 時序圖表與異常點", fontsize=16, fontweight='bold')
+    
+    # 確保 axes 是二維數組
+    if rows == 1:
+        axes = axes.reshape(1, -1)
+    if cols == 1:
+        axes = axes.reshape(-1, 1)
     
     for i, kpi in enumerate(kpi_names[:rows*cols]):
-        row = i // cols + 1
-        col = i % cols + 1
+        row = i // cols
+        col = i % cols
+        ax = axes[row, col]
         
         result = results[kpi]
         
+        # 轉換日期格式
+        dates = pd.to_datetime(result['dates'])
+        
         # 添加原始數據
-        fig.add_trace(
-            go.Scatter(
-                x=to_plotly_list(result['dates']), y=to_plotly_list(result['values']),
-                mode='lines+markers',
-                name=f'{kpi}',
-                line=dict(width=1),
-                marker=dict(size=3),
-                showlegend=False
-            ),
-            row=row, col=col
-        )
+        ax.plot(dates, result['values'], 'b-', linewidth=1, marker='o', markersize=2, alpha=0.7)
         
         # 添加異常點
         if len(result['outliers']) > 0:
-            fig.add_trace(
-                go.Scatter(
-                    x=to_plotly_list(result['dates'][result['outliers']]), y=to_plotly_list(result['values'][result['outliers']]),
-                    mode='markers',
-                    name=f'{kpi} 異常',
-                    marker=dict(color='red', size=6, symbol='x'),
-                    showlegend=False
-                ),
-                row=row, col=col
-            )
+            outlier_dates = dates.iloc[result['outliers']]
+            outlier_values = result['values'][result['outliers']]
+            ax.scatter(outlier_dates, outlier_values, color='red', s=30, marker='x', zorder=5)
+        
+        ax.set_title(f"{kpi} (異常率: {result['anomaly_rate']:.1f}%)", fontsize=10)
+        ax.grid(True, alpha=0.3)
+        
+        # 格式化x軸
+        ax.xaxis.set_major_formatter(mdates.DateFormatter('%m-%d'))
+        ax.xaxis.set_major_locator(mdates.DayLocator(interval=max(1, len(dates)//5)))
+        plt.setp(ax.xaxis.get_majorticklabels(), rotation=45, fontsize=8)
+        
+        # 設置y軸標籤
+        ax.tick_params(axis='y', labelsize=8)
     
-    fig.update_layout(
-        height=200 * rows,
-        title_text="KPI 時序圖表與異常點",
-        showlegend=False
-    )
+    # 隱藏多餘的子圖
+    for i in range(len(kpi_names), rows * cols):
+        row = i // cols
+        col = i % cols
+        axes[row, col].set_visible(False)
     
-    st.plotly_chart(fig)
+    plt.tight_layout()
+    render_matplotlib_figure(fig)
 
 def display_anomaly_ranking(results: Dict):
     """顯示異常排名"""
@@ -324,19 +325,32 @@ def display_anomaly_ranking(results: Dict):
     # 風險分佈餅圖
     risk_counts = ranking_df['風險等級'].value_counts()
     
-    fig = go.Figure(data=[go.Pie(
-        labels=to_plotly_list(risk_counts.index),
-        values=to_plotly_list(risk_counts.values),
-        marker_colors=['#f44336', '#ff9800', '#4caf50'],
-        textinfo='label+percent'
-    )])
+    fig, ax = plt.subplots(figsize=(8, 6))
     
-    fig.update_layout(
-        title="KPI 風險等級分佈",
-        height=400
+    colors = ['#f44336', '#ff9800', '#4caf50']  # 紅、橙、綠
+    risk_colors = [colors[i] for i in range(len(risk_counts))]
+    
+    wedges, texts, autotexts = ax.pie(
+        risk_counts.values, 
+        labels=risk_counts.index,
+        colors=risk_colors,
+        autopct='%1.1f%%',
+        startangle=90,
+        textprops={'fontsize': 10}
     )
     
-    st.plotly_chart(fig)
+    # 美化文字
+    for autotext in autotexts:
+        autotext.set_color('white')
+        autotext.set_fontweight('bold')
+    
+    ax.set_title("KPI 風險等級分佈", fontsize=14, fontweight='bold', pad=20)
+    
+    # 添加圖例
+    ax.legend(wedges, risk_counts.index, title="風險等級", loc="center left", bbox_to_anchor=(1, 0, 0.5, 1))
+    
+    plt.tight_layout()
+    render_matplotlib_figure(fig)
 
 def get_risk_level(anomaly_rate: float) -> str:
     """根據異常率判斷風險等級"""
